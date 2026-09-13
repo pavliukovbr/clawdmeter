@@ -10,7 +10,7 @@
 </p>
 
 <p align="center">
-  <a href="https://github.com/pavliukovbr/clawdmeter/releases/latest"><b>Download for Mac</b></a>
+  <a href="https://github.com/pavliukovbr/clawdmeter/releases/latest"><b>Download for Mac</b></a> · <a href="#on-your-iphone"><b>Install on iPhone</b></a> · <a href="#ask-your-claude-to-install-it"><b>Ask your Claude to install it</b></a>
 </p>
 
 ## Desktop widget
@@ -68,14 +68,7 @@ Every request is signed and every reply is encrypted with a key only your Mac an
 
 The Dynamic Island follows your session while it is on. It updates whenever the app refreshes, and iOS ends it after 8 hours.
 
-### Install on iPhone
-
-Apple only runs signed apps, so the iPhone app is built with Xcode and your own Apple ID. A free Apple ID works, but then the app has to be installed again every 7 days. A paid developer account makes it last a year.
-
-1. Open `Clawdmeter.xcodeproj` in Xcode and add your Apple ID in **Settings > Accounts**.
-2. Under **Signing & Capabilities**, pick your team for both `ClawdmeterPhone` and `ClawdmeterPhoneWidget`.
-3. If Xcode says the bundle identifier is not available, change `CLAWDMETER_BUNDLE_PREFIX` in the project build settings to something of your own.
-4. Connect the iPhone, turn on Developer Mode, choose it as the destination and press Run.
+To put it on your iPhone, follow [the iPhone steps](#on-your-iphone) or [ask your Claude to install it](#ask-your-claude-to-install-it).
 
 ## Works with every plan
 
@@ -93,13 +86,51 @@ Clawdmeter detects your plan and adapts on its own.
 
 ## Install
 
-Clawdmeter runs on macOS 14 Sonoma or later, on Apple silicon and Intel Macs. You need Claude Code signed in on the same Mac.
+### On your Mac
 
-1. Download **Clawdmeter.dmg** from the [latest release](https://github.com/pavliukovbr/clawdmeter/releases/latest) and drag Clawdmeter to Applications.
-2. Open it. Clawdmeter is not notarized by Apple, so macOS asks first. Go to **System Settings > Privacy & Security**, scroll down and click **Open Anyway**.
-3. Right click the desktop, choose **Edit Widgets**, search for Clawdmeter and drag the size you like.
+1. Download **Clawdmeter.dmg** from the [latest release](https://github.com/pavliukovbr/clawdmeter/releases/latest).
+2. Open it and drag Clawdmeter to Applications.
+3. Open Clawdmeter. It is not notarized by Apple, so the first time macOS asks: go to **System Settings > Privacy & Security**, scroll down and click **Open Anyway**.
+4. Right click the desktop, choose **Edit Widgets**, search for Clawdmeter and drag the size you like.
 
-Clawdmeter updates itself from this repository, so this is only needed once.
+You need macOS 14 Sonoma or later, on Apple silicon or Intel, and Claude Code signed in on the same Mac. From then on Clawdmeter updates itself.
+
+### On your iPhone
+
+The iPhone app is installed from your Mac with Xcode. A free Apple ID is enough.
+
+1. Install **Xcode** from the Mac App Store, open it and add your Apple ID in **Settings > Accounts**.
+2. Connect the iPhone with a cable and tap **Trust**. On the iPhone, turn on **Settings > Privacy & Security > Developer Mode** and let it restart.
+3. Download this project with **Code > Download ZIP** on this page, unzip it and open `Clawdmeter.xcodeproj`.
+4. Select the project, then under **Signing & Capabilities** pick your team for **ClawdmeterPhone** and for **ClawdmeterPhoneWidget**.
+5. At the top of the window choose **ClawdmeterPhone** and your iPhone, then press **Run**.
+6. On the iPhone, open **Settings > General > VPN & Device Management**, tap your Apple ID and tap **Trust**. Open Clawdmeter.
+7. On the Mac, turn on **Share with iPhone** in the Clawdmeter menu and scan the code with the iPhone Camera.
+
+With a free Apple ID the app stops opening after 7 days. Connect the iPhone and press Run again to renew it. If Xcode says the bundle identifier is not available, change `CLAWDMETER_BUNDLE_PREFIX` in the project build settings to something of your own.
+
+### Ask your Claude to install it
+
+Using Claude Code? Paste this and let it do the work. It will still ask you for the few things only you can do, like signing in to Xcode or tapping Trust on the iPhone.
+
+```text
+Please install Clawdmeter for me from https://github.com/pavliukovbr/clawdmeter
+
+Mac
+1. Download Clawdmeter.dmg from the latest release, copy Clawdmeter.app into /Applications and open it.
+2. If macOS blocks it, tell me to click Open Anyway in System Settings > Privacy & Security.
+3. Tell me how to add the widget: right click the desktop, choose Edit Widgets and search for Clawdmeter.
+
+iPhone (ask me first if I want it)
+1. Check that Xcode is installed and that I am signed in with my Apple ID in Xcode > Settings > Accounts. If not, stop and tell me what to do.
+2. Clone the repository and find my iPhone connected by cable with xcrun devicectl. Check that Developer Mode is on.
+3. Read my team ID from the Xcode preferences, then build the ClawdmeterPhone scheme for that iPhone with xcodebuild, passing DEVELOPMENT_TEAM and -allowProvisioningUpdates on the command line. Do not change the project file.
+4. If the bundle identifier is not available, add CLAWDMETER_BUNDLE_PREFIX set to something unique to that same command.
+5. Install and open the app on the iPhone with xcrun devicectl. If it does not open, tell me to trust my Apple ID in Settings > General > VPN & Device Management, then try again.
+6. Tell me to turn on Share with iPhone in the Clawdmeter menu on the Mac and scan the code with the iPhone Camera.
+
+Never ask for or type my passwords, and never show my Claude sign in or any token.
+```
 
 ## Build it yourself
 
