@@ -44,6 +44,21 @@ final class NotchPetController {
         UserDefaults.standard.bool(forKey: Self.enabledKey)
     }
 
+    /// Whether Clawd has a home under the notch right now.
+    var isShowing: Bool { panel != nil }
+
+    /// Just under the middle of the notch, in coordinates with the origin at the top left
+    /// of the main screen. Clawd drops from here when he goes out for a walk.
+    var dropPoint: CGPoint? {
+        guard let geometry = NotchGeometry.current(), let screen = NSScreen.screens.first else { return nil }
+        return CGPoint(x: geometry.notch.midX - screen.frame.minX, y: screen.frame.maxY - geometry.notch.minY + 2)
+    }
+
+    /// Hides the notch scene while Clawd is out on the desktop.
+    func setAway(_ away: Bool) {
+        scene?.setHidden(away, reason: .roaming)
+    }
+
     private func applySetting() {
         if isEnabled, panel == nil {
             start()
@@ -160,7 +175,7 @@ final class NotchPetController {
         scene.setHidden(Self.isMenuBarHidden(on: screen), reason: .fullscreen)
     }
 
-    private static func isMenuBarHidden(on screen: NSScreen) -> Bool {
+    static func isMenuBarHidden(on screen: NSScreen) -> Bool {
         if UserDefaults.standard.persistentDomain(forName: UserDefaults.globalDomain)?["_HIHideMenuBar"] as? Bool == true {
             return false
         }

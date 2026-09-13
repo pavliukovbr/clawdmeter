@@ -43,6 +43,28 @@ enum Format {
         value.formatted(.currency(code: currencyCode).precision(.fractionLength(value < 100 ? 2 : 0)))
     }
 
+    /// How long something took, like "45s", "4m 12s" or "1h 5m".
+    static func duration(_ seconds: TimeInterval) -> String {
+        let total = Int(seconds.rounded())
+        if total < 60 { return "\(total)s" }
+        let minutes = total / 60
+        if minutes < 60 {
+            let rest = total % 60
+            return rest == 0 ? "\(minutes)m" : "\(minutes)m \(rest)s"
+        }
+        let rest = minutes % 60
+        return rest == 0 ? "\(minutes / 60)h" : "\(minutes / 60)h \(rest)m"
+    }
+
+    /// "Done in my-project after 4m 12s."
+    static func finished(_ turn: FinishedTurn) -> String {
+        var text = turn.project.map { "Done in \($0)" } ?? "Done"
+        if let duration = turn.duration {
+            text += " after \(Format.duration(duration))"
+        }
+        return text + "."
+    }
+
     static func relative(_ date: Date, from now: Date) -> String {
         let seconds = now.timeIntervalSince(date)
         if seconds < 60 { return "just now" }

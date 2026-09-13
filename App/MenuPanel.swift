@@ -14,6 +14,8 @@ struct MenuPanel: View {
     @AppStorage(KeepAwake.displayKey) private var keepDisplayAwake = false
     @AppStorage(Updater.autoCheckKey) private var checksAutomatically = true
     @AppStorage(PhoneSharing.enabledKey) private var sharesWithiPhone = false
+    @AppStorage(RoamingController.enabledKey) private var walksAround = true
+    @AppStorage(ClaudeNotifier.enabledKey) private var notifiesWhenDone = true
 
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
@@ -43,6 +45,12 @@ struct MenuPanel: View {
             VStack(spacing: 0) {
                 SettingRow(symbol: "sparkles", tint: Palette.clay, title: "Clawd in the Notch") {
                     Toggle("", isOn: $notchPetEnabled).labelsHidden()
+                }
+                SettingRow(symbol: "figure.walk", tint: .orange, title: "Clawd Walks Around") {
+                    Toggle("", isOn: $walksAround).labelsHidden()
+                }
+                SettingRow(symbol: "bell.badge.fill", tint: .red, title: "Notify When Claude Finishes") {
+                    Toggle("", isOn: $notifiesWhenDone).labelsHidden()
                 }
                 SettingRow(symbol: "cup.and.saucer.fill", tint: .brown, title: "Keep Mac Awake", detail: keepAwake.isActive ? "Active now" : nil) {
                     Picker("", selection: $keepAwakeMode) {

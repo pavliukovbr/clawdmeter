@@ -1,6 +1,7 @@
 import ActivityKit
 import SwiftUI
 import UIKit
+import UserNotifications
 import WidgetKit
 
 @MainActor
@@ -17,6 +18,7 @@ final class PhoneModel: ObservableObject {
     @Published private(set) var stored: PhoneVault.StoredReply?
     @Published private(set) var connection: Connection
     @Published var pairingFailed = false
+    @Published var finishedBanner: FinishedTurn?
     @Published var showsInDynamicIsland: Bool {
         didSet {
             UserDefaults.standard.set(showsInDynamicIsland, forKey: "showsInDynamicIsland")
@@ -53,6 +55,7 @@ final class PhoneModel: ObservableObject {
         self.pairing = pairing
         stored = nil
         connection = .connecting
+        UNUserNotificationCenter.current().requestAuthorization(options: [.alert, .sound]) { _, _ in }
         Task { await refresh() }
     }
 
@@ -83,6 +86,9 @@ final class PhoneModel: ObservableObject {
         let result = await UsageRefresher.refresh()
         stored = result.stored
         pairing = PhoneVault.pairing
+        if result.error == nil {
+            announce(result.stored?.reply.lastFinishedTurn)
+        }
         switch result.error {
         case nil: connection = .connected
         case .rejected?: connection = .rejected
@@ -91,6 +97,36 @@ final class PhoneModel: ObservableObject {
         }
         WidgetCenter.shared.reloadAllTimelines()
         await updateLiveActivity()
+    }
+
+    // MARK: Claude finished
+
+    /// Shows a banner when Claude finished something that took a while since the last check.
+    /// With the app in the background it posts a notification instead, whenever iOS lets it run.
+    private func announce(_ turn: FinishedTurn?) {
+        guard let turn else { return }
+        let key = "lastAnnouncedTurn"
+        let previous = UserDefaults.standard.object(forKey: key) as? Date
+        guard turn.date > previous ?? .distantPast else { return }
+        UserDefaults.standard.set(turn.date, forKey: key)
+        guard previous != nil, Date().timeIntervalSince(turn.date) < 30 * 60 else { return }
+        if let duration = turn.duration, duration < 20 { return }
+
+        if UIApplication.shared.applicationState == .active {
+            withAnimation(.spring(duration: 0.5)) { finishedBanner = turn }
+            UINotificationFeedbackGenerator().notificationOccurred(.success)
+            DispatchQueue.main.asyncAfter(deadline: .now() + 5) { [weak self] in
+                guard self?.finishedBanner == turn else { return }
+                withAnimation(.easeOut(duration: 0.3)) { self?.finishedBanner = nil }
+            }
+        } else {
+            let content = UNMutableNotificationContent()
+            content.title = "Claude finished"
+            content.body = Format.finished(turn)
+            content.sound = .default
+            let request = UNNotificationRequest(identifier: "claude-finished-\(Int(turn.date.timeIntervalSince1970))", content: content, trigger: nil)
+            UNUserNotificationCenter.current().add(request)
+        }
     }
 
     // MARK: Dynamic Island

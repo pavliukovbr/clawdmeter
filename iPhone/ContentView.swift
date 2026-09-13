@@ -12,12 +12,53 @@ struct ContentView: View {
                 UsageScreen(model: model)
             }
         }
+        .overlay(alignment: .top) {
+            if let turn = model.finishedBanner {
+                FinishedBanner(turn: turn)
+                    .padding(.horizontal, 16)
+                    .transition(.move(edge: .top).combined(with: .opacity))
+                    .onTapGesture {
+                        withAnimation(.easeOut(duration: 0.3)) { model.finishedBanner = nil }
+                    }
+            }
+        }
         .preferredColorScheme(.dark)
         .alert("That is not a Clawdmeter link", isPresented: $model.pairingFailed) {
             Button("OK", role: .cancel) {}
         } message: {
             Text("Scan the code shown under Share with iPhone in the Clawdmeter menu on your Mac.")
         }
+    }
+}
+
+// MARK: Claude finished
+
+private struct FinishedBanner: View {
+    var turn: FinishedTurn
+
+    var body: some View {
+        HStack(spacing: 14) {
+            TimelineView(.animation) { context in
+                ClawdView(mood: .happy, unit: 2.2)
+                    .environment(\.motionClock, context.date)
+            }
+            .frame(width: 36, height: 22)
+            .padding(.top, 6)
+
+            VStack(alignment: .leading, spacing: 2) {
+                Text("Claude finished")
+                    .font(.headline)
+                Text(Format.finished(turn))
+                    .font(.subheadline)
+                    .foregroundStyle(.secondary)
+                    .lineLimit(1)
+            }
+            Spacer(minLength: 0)
+        }
+        .padding(.horizontal, 16)
+        .padding(.vertical, 12)
+        .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 22, style: .continuous))
+        .shadow(color: .black.opacity(0.3), radius: 12, y: 6)
     }
 }
 

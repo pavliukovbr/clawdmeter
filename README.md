@@ -44,6 +44,23 @@ Clawd hangs out right under the notch and shows what is going on:
 
 Move the pointer close and Clawd hides behind the notch so nothing underneath is blocked. It stays out of full screen apps. On Macs without a notch it hangs from the middle of the menu bar instead. You can turn it off from the menu bar.
 
+## Clawd on your desktop
+
+Turn on **Clawd Walks Around** and Clawd leaves the notch now and then:
+
+- Walks out onto the menu bar next to the notch, looks around and hops down
+- Lands on top of your windows, rides along when you drag them and falls when they close
+- Jumps between windows and wanders toward the pointer
+- Pretends to be things on your screen: a folder, a fourth window button, the pointer, and every so often something in the top left corner of the menu bar
+- Gets a heart when you rest the pointer on him
+- Heads back into the notch when Claude gets to work, and comes out again once it is quiet
+
+There is only ever one Clawd, so the notch stays empty while he is out. Mention the right names to Claude and you might get a surprise or two.
+
+## Notifications
+
+With **Notify When Claude Finishes** on, the Mac lets you know when Claude wraps up something that took more than 20 seconds, with the project name and how long it took. The iPhone app shows the same news as a banner while it is open.
+
 ## Keep Mac awake
 
 Leaving Claude on a long task, or driving it remotely? Clawdmeter can keep the Mac from going to sleep:
@@ -177,7 +194,8 @@ Widgets on macOS are drawn ahead of time, so regular animations do not run in th
 Clawdmeter keeps everything on your own devices.
 
 - **Your sign in** stays in memory and is only sent to `api.anthropic.com` to ask for your limits.
-- **Session logs** are read on your Mac. Only token counts, tool names and timestamps are looked at, never your prompts or code.
+- **Session logs** are read on your Mac. Only token counts, tool names, timestamps and the project folder name are looked at. Prompts are only checked for a couple of easter egg words, and nothing from them is kept.
+- **Your windows** are only measured, so Clawd knows where he can stand. What is inside them is never looked at, and no screen recording permission is needed.
 - **What you do** is limited to which app is in front and how long ago a key was pressed. Which keys you press is never known.
 - **What is saved** is one small file in `~/Library/Application Support/Clawdmeter` with percentages, reset times and daily totals, readable only by you.
 - **Sharing with iPhone** is off until you turn it on. The Mac only answers phones paired with its code, replies are encrypted, and the port closes when you turn it off. Reset the code any time to unpair every phone.

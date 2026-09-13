@@ -41,6 +41,14 @@ struct PhoneLinkReply: Codable, Equatable {
     var name: String
     var hosts: [String]
     var snapshot: UsageSnapshot?
+    var lastFinishedTurn: FinishedTurn?
+}
+
+/// When Claude last finished answering, how long it worked and in which project folder.
+struct FinishedTurn: Codable, Equatable {
+    var date: Date
+    var duration: TimeInterval?
+    var project: String?
 }
 
 /// Requests are signed and replies are encrypted with keys made from the pairing secret, so

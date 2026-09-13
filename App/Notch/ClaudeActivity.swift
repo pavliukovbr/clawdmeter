@@ -33,6 +33,18 @@ final class ClaudeActivityWatcher: ObservableObject {
     }
 
     @Published private(set) var latest: Event?
+    @Published private(set) var lastFinishedTurn: FinishedTurn?
+    /// The last hidden surprise a prompt asked for.
+    @Published private(set) var easterEgg: EasterEgg?
+
+    struct EasterEgg: Equatable {
+        enum Kind {
+            case webSlinger, popStar
+        }
+
+        var kind: Kind
+        var date: Date
+    }
 
     private let root = URL(fileURLWithPath: SnapshotStore.realHomeDirectory)
         .appendingPathComponent(".claude/projects", isDirectory: true)
@@ -91,8 +103,8 @@ final class ClaudeActivityWatcher: ObservableObject {
 
     private func handle(_ paths: [String]) {
         for path in Set(paths) where path.hasSuffix(".jsonl") {
-            if let event = Self.lastEvent(in: URL(fileURLWithPath: path)) {
-                publish(event)
+            if let tail = Self.readTail(of: URL(fileURLWithPath: path)) {
+                publish(tail)
             }
         }
     }
@@ -112,59 +124,121 @@ final class ClaudeActivityWatcher: ObservableObject {
                 newest = (url, date)
             }
         }
-        if let newest, let event = Self.lastEvent(in: newest.url) {
-            publish(event)
+        if let newest, let tail = Self.readTail(of: newest.url) {
+            publish(tail)
         }
     }
 
-    private func publish(_ event: Event) {
+    private func publish(_ tail: LogTail) {
         DispatchQueue.main.async { [weak self] in
             guard let self else { return }
-            if let latest = self.latest, latest.date > event.date { return }
-            self.latest = event
+            if let turn = tail.finishedTurn, turn.date > self.lastFinishedTurn?.date ?? .distantPast {
+                self.lastFinishedTurn = turn
+            }
+            if let egg = tail.easterEgg, egg.date > self.easterEgg?.date ?? .distantPast {
+                self.easterEgg = egg
+            }
+            if let latest = self.latest, latest.date > tail.event.date { return }
+            self.latest = tail.event
         }
     }
 
-    static func lastEvent(in url: URL) -> Event? {
+    struct LogTail {
+        var event: Event
+        var finishedTurn: FinishedTurn?
+        var easterEgg: EasterEgg?
+    }
+
+    /// Reads the end of a session log. When the last step finished a turn, it also looks back
+    /// for the prompt that started it, to know how long Claude worked.
+    static func readTail(of url: URL) -> LogTail? {
         guard let handle = try? FileHandle(forReadingFrom: url) else { return nil }
         defer { try? handle.close() }
 
         let size = (try? handle.seekToEnd()) ?? 0
-        let start = size > 96_000 ? size - 96_000 : 0
+        let start = size > 256_000 ? size - 256_000 : 0
         guard (try? handle.seek(toOffset: start)) != nil, let data = try? handle.readToEnd() else { return nil }
 
         var lines = data.split(separator: 0x0A)
         if start > 0, !lines.isEmpty { lines.removeFirst() }
+
+        // Only look further back when it matters: to time a finished turn, or to catch the
+        // prompt that was just sent.
+        var latest: Line?
+        var prompt: Line?
+        var looked = 0
         for line in lines.reversed() {
-            if let event = event(from: line) { return event }
+            guard let parsed = parse(line) else { continue }
+            looked += 1
+            if latest == nil { latest = parsed }
+            if parsed.isPrompt {
+                prompt = parsed
+                break
+            }
+            if latest?.event.activity != .celebrating, looked >= 6 { break }
         }
+        guard let latest else { return nil }
+
+        var turn: FinishedTurn?
+        if latest.event.activity == .celebrating {
+            turn = FinishedTurn(
+                date: latest.event.date,
+                duration: prompt.map { latest.event.date.timeIntervalSince($0.event.date) },
+                project: latest.project
+            )
+        }
+        let egg = prompt.flatMap { line in line.easterEgg.map { EasterEgg(kind: $0, date: line.event.date) } }
+        return LogTail(event: latest.event, finishedTurn: turn, easterEgg: egg)
+    }
+
+    private struct Line {
+        var event: Event
+        var isPrompt: Bool
+        var project: String?
+        var easterEgg: EasterEgg.Kind?
+    }
+
+    /// The only things ever looked for in a prompt. Nothing from it is kept.
+    private static func easterEgg(in text: String) -> EasterEgg.Kind? {
+        let squashed = text.lowercased()
+            .replacingOccurrences(of: "-", with: "")
+            .replacingOccurrences(of: " ", with: "")
+        if squashed.contains("spiderman") || squashed.contains("homemaranha") { return .webSlinger }
+        if squashed.contains("ladygaga") { return .popStar }
         return nil
     }
 
-    private static func event(from line: Data) -> Event? {
+    private static func parse(_ line: Data) -> Line? {
         guard let object = try? JSONSerialization.jsonObject(with: line) as? [String: Any],
               let type = object["type"] as? String, type == "assistant" || type == "user",
               object["isMeta"] as? Bool != true,
               let message = object["message"] as? [String: Any],
               let date = (object["timestamp"] as? String).flatMap(ClaudeAPI.parseDate) else { return nil }
 
+        let project = (object["cwd"] as? String).map { URL(fileURLWithPath: $0).lastPathComponent }
         let blocks = message["content"] as? [[String: Any]] ?? []
 
         if type == "assistant" {
             if let tool = blocks.last(where: { $0["type"] as? String == "tool_use" }),
                let name = tool["name"] as? String {
-                return Event(activity: ToolActivity.activity(forTool: name), date: date, waitingOnTool: true)
+                return Line(event: Event(activity: ToolActivity.activity(forTool: name), date: date, waitingOnTool: true), isPrompt: false, project: project)
             }
             let finished = message["stop_reason"] as? String == "end_turn"
-            return Event(activity: finished ? .celebrating : .thinking, date: date, waitingOnTool: false)
+            return Line(event: Event(activity: finished ? .celebrating : .thinking, date: date, waitingOnTool: false), isPrompt: false, project: project)
         }
 
         // A prompt or a tool result: Claude is about to think about it.
+        let isToolResult = blocks.contains { $0["type"] as? String == "tool_result" }
         let text = (message["content"] as? String) ?? blocks.compactMap { $0["text"] as? String }.joined()
         if text.contains("<local-command") || text.contains("<command-name>") { return nil }
         if text.contains("[Request interrupted") {
-            return Event(activity: .idle, date: date, waitingOnTool: false)
+            return Line(event: Event(activity: .idle, date: date, waitingOnTool: false), isPrompt: true, project: project)
         }
-        return Event(activity: .thinking, date: date, waitingOnTool: false)
+        return Line(
+            event: Event(activity: .thinking, date: date, waitingOnTool: false),
+            isPrompt: !isToolResult,
+            project: project,
+            easterEgg: isToolResult ? nil : easterEgg(in: text)
+        )
     }
 }

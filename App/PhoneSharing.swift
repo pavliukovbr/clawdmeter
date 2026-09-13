@@ -16,13 +16,15 @@ final class PhoneSharing: ObservableObject {
     @Published private(set) var problem: String?
 
     private let store: UsageStore
+    private let watcher: ClaudeActivityWatcher
     private let server = PhoneServer()
     private let pathMonitor = NWPathMonitor()
     private var secret: Data?
     private var subscriptions: Set<AnyCancellable> = []
 
-    init(store: UsageStore) {
+    init(store: UsageStore, watcher: ClaudeActivityWatcher) {
         self.store = store
+        self.watcher = watcher
         UserDefaults.standard.register(defaults: [Self.enabledKey: false])
 
         server.onRequest = { [weak self] in
@@ -33,6 +35,10 @@ final class PhoneSharing: ObservableObject {
             .sink { [weak self] _ in self?.apply() }
             .store(in: &subscriptions)
         store.$snapshot
+            .receive(on: RunLoop.main)
+            .sink { [weak self] _ in self?.publishReply() }
+            .store(in: &subscriptions)
+        watcher.$lastFinishedTurn
             .receive(on: RunLoop.main)
             .sink { [weak self] _ in self?.publishReply() }
             .store(in: &subscriptions)
@@ -85,7 +91,7 @@ final class PhoneSharing: ObservableObject {
         let hosts = NetworkAddresses.current()
         let next = PhonePairing(name: name, hosts: hosts, port: PhoneLink.defaultPort, key: secret.base64URL)
         if next != pairing { pairing = next }
-        server.update(reply: PhoneLinkReply(name: name, hosts: hosts, snapshot: store.snapshot))
+        server.update(reply: PhoneLinkReply(name: name, hosts: hosts, snapshot: store.snapshot, lastFinishedTurn: watcher.lastFinishedTurn))
     }
 }
 

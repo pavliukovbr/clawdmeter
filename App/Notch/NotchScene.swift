@@ -8,7 +8,7 @@ import QuartzCore
 /// y down from the notch edge.
 final class NotchSceneView: NSView {
     enum HideReason: Hashable {
-        case pointer, fullscreen
+        case pointer, fullscreen, roaming
     }
 
     static let unit: CGFloat = 2

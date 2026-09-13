@@ -24,17 +24,22 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     let keepAwake: KeepAwake
     let phoneSharing: PhoneSharing
     private var notchPet: NotchPetController?
+    private var roaming: RoamingController?
+    private var notifier: ClaudeNotifier?
 
     override init() {
         keepAwake = KeepAwake(watcher: watcher)
-        phoneSharing = PhoneSharing(store: store)
+        phoneSharing = PhoneSharing(store: store, watcher: watcher)
         super.init()
     }
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         LoginItem.enableOnFirstLaunch()
         watcher.start()
-        notchPet = NotchPetController(store: store, watcher: watcher)
+        let notchPet = NotchPetController(store: store, watcher: watcher)
+        self.notchPet = notchPet
+        roaming = RoamingController(watcher: watcher, notchPet: notchPet)
+        notifier = ClaudeNotifier(watcher: watcher)
     }
 
     /// Opening the app again (or clicking the widget) brings the icon back and refreshes.
