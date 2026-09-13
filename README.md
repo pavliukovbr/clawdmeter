@@ -6,7 +6,7 @@
 
 <p align="center">
   Your Claude plan usage on the macOS desktop, with Clawd walking along the meter.<br>
-  And a little Clawd under your notch that works whenever Claude does.
+  A little Clawd under your notch that works whenever Claude does, and on your iPhone too.
 </p>
 
 <p align="center">
@@ -54,6 +54,29 @@ Leaving Claude on a long task, or driving it remotely? Clawdmeter can keep the M
 
 The Mac still sleeps when the lid is closed, unless it is connected to an external display.
 
+## iPhone
+
+Clawdmeter comes to the iPhone too: widgets on the Home Screen, a ring and a bar on the Lock Screen, a big Clawd in StandBy and Clawd in the Dynamic Island.
+
+The iPhone never signs in to Claude. Your Mac shares the summary with it:
+
+1. On the Mac, open Clawdmeter in the menu bar and turn on **Share with iPhone**.
+2. Scan the code with the iPhone Camera and open the link.
+3. To keep it working away from home, install [Tailscale](https://tailscale.com) on the Mac and the iPhone with the same account. The iPhone picks up the new address by itself.
+
+Every request is signed and every reply is encrypted with a key only your Mac and iPhone know, so nothing readable crosses the network. When the Mac cannot be reached, the iPhone keeps showing the last numbers and the countdowns keep running.
+
+The Dynamic Island follows your session while it is on. It updates whenever the app refreshes, and iOS ends it after 8 hours.
+
+### Install on iPhone
+
+Apple only runs signed apps, so the iPhone app is built with Xcode and your own Apple ID. A free Apple ID works, but then the app has to be installed again every 7 days. A paid developer account makes it last a year.
+
+1. Open `Clawdmeter.xcodeproj` in Xcode and add your Apple ID in **Settings > Accounts**.
+2. Under **Signing & Capabilities**, pick your team for both `ClawdmeterPhone` and `ClawdmeterPhoneWidget`.
+3. If Xcode says the bundle identifier is not available, change `CLAWDMETER_BUNDLE_PREFIX` in the project build settings to something of your own.
+4. Connect the iPhone, turn on Developer Mode, choose it as the destination and press Run.
+
 ## Works with every plan
 
 Clawdmeter detects your plan and adapts on its own.
@@ -100,11 +123,12 @@ cp -R build/Build/Products/Release/Clawdmeter.app /Applications/
 
 Or open `Clawdmeter.xcodeproj` and press Run. To make the downloadable files for a release, run `scripts/release.sh`.
 
-The project is split in three folders:
+The project is organized in a few folders:
 
-- `App` is the menu bar app: reading usage, the notch scene, keep awake and updates.
-- `Widget` is the WidgetKit extension.
-- `Shared` has the views and models both of them use.
+- `App` is the menu bar app: reading usage, the notch scene, keep awake, updates and sharing with iPhone.
+- `Widget` is the Mac widget extension.
+- `iPhone` and `iPhoneWidget` are the iPhone app, its widgets and the Live Activity, with `PhoneShared` between them.
+- `Shared` has the views, models and the pairing protocol used everywhere.
 
 ## How it works
 
@@ -119,12 +143,14 @@ Widgets on macOS are drawn ahead of time, so regular animations do not run in th
 
 ## Privacy
 
-Clawdmeter keeps everything on your Mac.
+Clawdmeter keeps everything on your own devices.
 
 - **Your sign in** stays in memory and is only sent to `api.anthropic.com` to ask for your limits.
 - **Session logs** are read on your Mac. Only token counts, tool names and timestamps are looked at, never your prompts or code.
 - **What you do** is limited to which app is in front and how long ago a key was pressed. Which keys you press is never known.
 - **What is saved** is one small file in `~/Library/Application Support/Clawdmeter` with percentages, reset times and daily totals, readable only by you.
+- **Sharing with iPhone** is off until you turn it on. The Mac only answers phones paired with its code, replies are encrypted, and the port closes when you turn it off. Reset the code any time to unpair every phone.
+- **The iPhone** keeps the pairing and the last numbers in its keychain. It never gets your Claude sign in.
 - **Updates** come from the public release list of this repository on GitHub. Nothing about you or your Mac is sent.
 
 There is no analytics, no tracking and no account.
@@ -135,6 +161,7 @@ There is no analytics, no tracking and no account.
 - The usage endpoint is the one Claude Code uses internally. It is not a public API and could change.
 - Widgets on a dimmed desktop keep Clawd still, since macOS does not animate them there.
 - Closed the menu bar icon by accident? Open Clawdmeter again and it comes back.
+- Sharing with iPhone listens on port 47847.
 
 ## License
 

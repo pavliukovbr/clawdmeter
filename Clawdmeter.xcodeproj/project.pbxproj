@@ -8,6 +8,7 @@
 
 /* Begin PBXBuildFile section */
 		150000000000000000000001 /* ClawdmeterWidget.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = 140000000000000000000002 /* ClawdmeterWidget.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
+		250000000000000000000001 /* ClawdmeterPhoneWidget.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = 240000000000000000000002 /* ClawdmeterPhoneWidget.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -17,6 +18,13 @@
 			proxyType = 1;
 			remoteGlobalIDString = 1A0000000000000000000002;
 			remoteInfo = ClawdmeterWidget;
+		};
+		260000000000000000000001 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 100000000000000000000001 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 2A0000000000000000000002;
+			remoteInfo = ClawdmeterPhoneWidget;
 		};
 /* End PBXContainerItemProxy section */
 
@@ -32,11 +40,24 @@
 			name = "Embed Foundation Extensions";
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		280000000000000000000001 /* Embed Foundation Extensions */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = "";
+			dstSubfolderSpec = 13;
+			files = (
+				250000000000000000000001 /* ClawdmeterPhoneWidget.appex in Embed Foundation Extensions */,
+			);
+			name = "Embed Foundation Extensions";
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
 		140000000000000000000001 /* Clawdmeter.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Clawdmeter.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		140000000000000000000002 /* ClawdmeterWidget.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = ClawdmeterWidget.appex; sourceTree = BUILT_PRODUCTS_DIR; };
+		240000000000000000000001 /* ClawdmeterPhone.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = ClawdmeterPhone.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		240000000000000000000002 /* ClawdmeterPhoneWidget.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = ClawdmeterPhoneWidget.appex; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
@@ -46,6 +67,20 @@
 				Info.plist,
 			);
 			target = 1A0000000000000000000002 /* ClawdmeterWidget */;
+		};
+		230000000000000000000001 /* Exceptions for "iPhone" folder in "ClawdmeterPhone" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				Info.plist,
+			);
+			target = 2A0000000000000000000001 /* ClawdmeterPhone */;
+		};
+		230000000000000000000002 /* Exceptions for "iPhoneWidget" folder in "ClawdmeterPhoneWidget" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				Info.plist,
+			);
+			target = 2A0000000000000000000002 /* ClawdmeterPhoneWidget */;
 		};
 /* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
 
@@ -68,6 +103,27 @@
 			path = Shared;
 			sourceTree = "<group>";
 		};
+		220000000000000000000001 /* iPhone */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+				230000000000000000000001 /* Exceptions for "iPhone" folder in "ClawdmeterPhone" target */,
+			);
+			path = iPhone;
+			sourceTree = "<group>";
+		};
+		220000000000000000000002 /* iPhoneWidget */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+				230000000000000000000002 /* Exceptions for "iPhoneWidget" folder in "ClawdmeterPhoneWidget" target */,
+			);
+			path = iPhoneWidget;
+			sourceTree = "<group>";
+		};
+		220000000000000000000003 /* PhoneShared */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = PhoneShared;
+			sourceTree = "<group>";
+		};
 /* End PBXFileSystemSynchronizedRootGroup section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -85,6 +141,20 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		290000000000000000000002 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		290000000000000000000005 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
@@ -94,6 +164,9 @@
 				120000000000000000000001 /* App */,
 				120000000000000000000002 /* Widget */,
 				120000000000000000000003 /* Shared */,
+				220000000000000000000001 /* iPhone */,
+				220000000000000000000002 /* iPhoneWidget */,
+				220000000000000000000003 /* PhoneShared */,
 				110000000000000000000002 /* Products */,
 			);
 			sourceTree = "<group>";
@@ -103,6 +176,8 @@
 			children = (
 				140000000000000000000001 /* Clawdmeter.app */,
 				140000000000000000000002 /* ClawdmeterWidget.appex */,
+				240000000000000000000001 /* ClawdmeterPhone.app */,
+				240000000000000000000002 /* ClawdmeterPhoneWidget.appex */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -158,6 +233,56 @@
 			productReference = 140000000000000000000002 /* ClawdmeterWidget.appex */;
 			productType = "com.apple.product-type.app-extension";
 		};
+		2A0000000000000000000001 /* ClawdmeterPhone */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 2B0000000000000000000001 /* Build configuration list for PBXNativeTarget "ClawdmeterPhone" */;
+			buildPhases = (
+				290000000000000000000001 /* Sources */,
+				290000000000000000000002 /* Frameworks */,
+				290000000000000000000003 /* Resources */,
+				280000000000000000000001 /* Embed Foundation Extensions */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				270000000000000000000001 /* PBXTargetDependency */,
+			);
+			fileSystemSynchronizedGroups = (
+				220000000000000000000001 /* iPhone */,
+				220000000000000000000003 /* PhoneShared */,
+				120000000000000000000003 /* Shared */,
+			);
+			name = ClawdmeterPhone;
+			packageProductDependencies = (
+			);
+			productName = ClawdmeterPhone;
+			productReference = 240000000000000000000001 /* ClawdmeterPhone.app */;
+			productType = "com.apple.product-type.application";
+		};
+		2A0000000000000000000002 /* ClawdmeterPhoneWidget */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 2B0000000000000000000002 /* Build configuration list for PBXNativeTarget "ClawdmeterPhoneWidget" */;
+			buildPhases = (
+				290000000000000000000004 /* Sources */,
+				290000000000000000000005 /* Frameworks */,
+				290000000000000000000006 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			fileSystemSynchronizedGroups = (
+				220000000000000000000002 /* iPhoneWidget */,
+				220000000000000000000003 /* PhoneShared */,
+				120000000000000000000003 /* Shared */,
+			);
+			name = ClawdmeterPhoneWidget;
+			packageProductDependencies = (
+			);
+			productName = ClawdmeterPhoneWidget;
+			productReference = 240000000000000000000002 /* ClawdmeterPhoneWidget.appex */;
+			productType = "com.apple.product-type.app-extension";
+		};
 /* End PBXNativeTarget section */
 
 /* Begin PBXProject section */
@@ -192,6 +317,8 @@
 			targets = (
 				1A0000000000000000000001 /* Clawdmeter */,
 				1A0000000000000000000002 /* ClawdmeterWidget */,
+				2A0000000000000000000001 /* ClawdmeterPhone */,
+				2A0000000000000000000002 /* ClawdmeterPhoneWidget */,
 			);
 		};
 /* End PBXProject section */
@@ -205,6 +332,20 @@
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 		190000000000000000000006 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		290000000000000000000003 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		290000000000000000000006 /* Resources */ = {
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
@@ -228,6 +369,20 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		290000000000000000000001 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		290000000000000000000004 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXSourcesBuildPhase section */
 
 /* Begin PBXTargetDependency section */
@@ -235,6 +390,11 @@
 			isa = PBXTargetDependency;
 			target = 1A0000000000000000000002 /* ClawdmeterWidget */;
 			targetProxy = 160000000000000000000001 /* PBXContainerItemProxy */;
+		};
+		270000000000000000000001 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 2A0000000000000000000002 /* ClawdmeterPhoneWidget */;
+			targetProxy = 260000000000000000000001 /* PBXContainerItemProxy */;
 		};
 /* End PBXTargetDependency section */
 
@@ -245,6 +405,7 @@
 				ALWAYS_SEARCH_USER_PATHS = NO;
 				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
 				CLANG_ENABLE_MODULES = YES;
+				CLAWDMETER_BUNDLE_PREFIX = com.pavliukovbr;
 				CLANG_ENABLE_OBJC_ARC = YES;
 				CODE_SIGN_IDENTITY = "-";
 				CODE_SIGN_STYLE = Automatic;
@@ -271,6 +432,7 @@
 				ALWAYS_SEARCH_USER_PATHS = NO;
 				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
 				CLANG_ENABLE_MODULES = YES;
+				CLAWDMETER_BUNDLE_PREFIX = com.pavliukovbr;
 				CLANG_ENABLE_OBJC_ARC = YES;
 				CODE_SIGN_IDENTITY = "-";
 				CODE_SIGN_STYLE = Automatic;
@@ -294,18 +456,19 @@
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CODE_SIGN_ENTITLEMENTS = App/Clawdmeter.entitlements;
 				COMBINE_HIDPI_IMAGES = YES;
-				CURRENT_PROJECT_VERSION = 2;
+				CURRENT_PROJECT_VERSION = 3;
 				ENABLE_HARDENED_RUNTIME = YES;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_KEY_CFBundleDisplayName = Clawdmeter;
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.developer-tools";
 				INFOPLIST_KEY_LSUIElement = YES;
+				INFOPLIST_KEY_NSLocalNetworkUsageDescription = "Clawdmeter shares your usage with your paired iPhone on this network.";
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/../Frameworks",
 				);
-				MARKETING_VERSION = 1.1.0;
+				MARKETING_VERSION = 1.2.0;
 				PRODUCT_BUNDLE_IDENTIFIER = com.pavliukovbr.clawdmeter;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_EMIT_LOC_STRINGS = YES;
@@ -318,18 +481,19 @@
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CODE_SIGN_ENTITLEMENTS = App/Clawdmeter.entitlements;
 				COMBINE_HIDPI_IMAGES = YES;
-				CURRENT_PROJECT_VERSION = 2;
+				CURRENT_PROJECT_VERSION = 3;
 				ENABLE_HARDENED_RUNTIME = YES;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_KEY_CFBundleDisplayName = Clawdmeter;
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.developer-tools";
 				INFOPLIST_KEY_LSUIElement = YES;
+				INFOPLIST_KEY_NSLocalNetworkUsageDescription = "Clawdmeter shares your usage with your paired iPhone on this network.";
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/../Frameworks",
 				);
-				MARKETING_VERSION = 1.1.0;
+				MARKETING_VERSION = 1.2.0;
 				PRODUCT_BUNDLE_IDENTIFIER = com.pavliukovbr.clawdmeter;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_EMIT_LOC_STRINGS = YES;
@@ -340,7 +504,7 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				CODE_SIGN_ENTITLEMENTS = Widget/ClawdmeterWidget.entitlements;
-				CURRENT_PROJECT_VERSION = 2;
+				CURRENT_PROJECT_VERSION = 3;
 				ENABLE_HARDENED_RUNTIME = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = Widget/Info.plist;
@@ -350,7 +514,7 @@
 					"@executable_path/../Frameworks",
 					"@executable_path/../../../../Frameworks",
 				);
-				MARKETING_VERSION = 1.1.0;
+				MARKETING_VERSION = 1.2.0;
 				PRODUCT_BUNDLE_IDENTIFIER = com.pavliukovbr.clawdmeter.widget;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SKIP_INSTALL = YES;
@@ -362,7 +526,7 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				CODE_SIGN_ENTITLEMENTS = Widget/ClawdmeterWidget.entitlements;
-				CURRENT_PROJECT_VERSION = 2;
+				CURRENT_PROJECT_VERSION = 3;
 				ENABLE_HARDENED_RUNTIME = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = Widget/Info.plist;
@@ -372,11 +536,135 @@
 					"@executable_path/../Frameworks",
 					"@executable_path/../../../../Frameworks",
 				);
-				MARKETING_VERSION = 1.1.0;
+				MARKETING_VERSION = 1.2.0;
 				PRODUCT_BUNDLE_IDENTIFIER = com.pavliukovbr.clawdmeter.widget;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SKIP_INSTALL = YES;
 				SWIFT_EMIT_LOC_STRINGS = YES;
+			};
+			name = Release;
+		};
+		2C0000000000000000000001 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_IDENTITY = "Apple Development";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 3;
+				DEVELOPMENT_TEAM = "";
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_CFBundleDisplayName = Clawdmeter;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				MARKETING_VERSION = 1.2.0;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = iphoneos;
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
+				SUPPORTS_MACCATALYST = NO;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				TARGETED_DEVICE_FAMILY = 1;
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CODE_SIGN_ENTITLEMENTS = iPhone/ClawdmeterPhone.entitlements;
+				ENABLE_PREVIEWS = YES;
+				INFOPLIST_FILE = iPhone/Info.plist;
+				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
+				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
+				INFOPLIST_KEY_UISupportedInterfaceOrientations = UIInterfaceOrientationPortrait;
+				INFOPLIST_KEY_UIUserInterfaceStyle = Dark;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = "$(CLAWDMETER_BUNDLE_PREFIX).clawdmeter.phone";
+			};
+			name = Debug;
+		};
+		2C0000000000000000000002 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_IDENTITY = "Apple Development";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 3;
+				DEVELOPMENT_TEAM = "";
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_CFBundleDisplayName = Clawdmeter;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				MARKETING_VERSION = 1.2.0;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = iphoneos;
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
+				SUPPORTS_MACCATALYST = NO;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				TARGETED_DEVICE_FAMILY = 1;
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CODE_SIGN_ENTITLEMENTS = iPhone/ClawdmeterPhone.entitlements;
+				ENABLE_PREVIEWS = YES;
+				INFOPLIST_FILE = iPhone/Info.plist;
+				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
+				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
+				INFOPLIST_KEY_UISupportedInterfaceOrientations = UIInterfaceOrientationPortrait;
+				INFOPLIST_KEY_UIUserInterfaceStyle = Dark;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = "$(CLAWDMETER_BUNDLE_PREFIX).clawdmeter.phone";
+			};
+			name = Release;
+		};
+		2C0000000000000000000003 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_IDENTITY = "Apple Development";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 3;
+				DEVELOPMENT_TEAM = "";
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_CFBundleDisplayName = Clawdmeter;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				MARKETING_VERSION = 1.2.0;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = iphoneos;
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
+				SUPPORTS_MACCATALYST = NO;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				TARGETED_DEVICE_FAMILY = 1;
+				CODE_SIGN_ENTITLEMENTS = iPhoneWidget/ClawdmeterPhoneWidget.entitlements;
+				INFOPLIST_FILE = iPhoneWidget/Info.plist;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = "$(CLAWDMETER_BUNDLE_PREFIX).clawdmeter.phone.widget";
+				SKIP_INSTALL = YES;
+			};
+			name = Debug;
+		};
+		2C0000000000000000000004 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_IDENTITY = "Apple Development";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 3;
+				DEVELOPMENT_TEAM = "";
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_CFBundleDisplayName = Clawdmeter;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				MARKETING_VERSION = 1.2.0;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = iphoneos;
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
+				SUPPORTS_MACCATALYST = NO;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				TARGETED_DEVICE_FAMILY = 1;
+				CODE_SIGN_ENTITLEMENTS = iPhoneWidget/ClawdmeterPhoneWidget.entitlements;
+				INFOPLIST_FILE = iPhoneWidget/Info.plist;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = "$(CLAWDMETER_BUNDLE_PREFIX).clawdmeter.phone.widget";
+				SKIP_INSTALL = YES;
 			};
 			name = Release;
 		};
@@ -406,6 +694,24 @@
 			buildConfigurations = (
 				1C0000000000000000000005 /* Debug */,
 				1C0000000000000000000006 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		2B0000000000000000000001 /* Build configuration list for PBXNativeTarget "ClawdmeterPhone" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				2C0000000000000000000001 /* Debug */,
+				2C0000000000000000000002 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		2B0000000000000000000002 /* Build configuration list for PBXNativeTarget "ClawdmeterPhoneWidget" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				2C0000000000000000000003 /* Debug */,
+				2C0000000000000000000004 /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;

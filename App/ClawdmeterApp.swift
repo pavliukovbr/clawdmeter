@@ -7,7 +7,7 @@ struct ClawdmeterApp: App {
 
     var body: some Scene {
         MenuBarExtra(isInserted: $showMenuBarIcon) {
-            MenuPanel(store: appDelegate.store, updater: appDelegate.updater, keepAwake: appDelegate.keepAwake)
+            MenuPanel(store: appDelegate.store, updater: appDelegate.updater, keepAwake: appDelegate.keepAwake, phoneSharing: appDelegate.phoneSharing)
         } label: {
             Image(nsImage: MenuBarIcon.image)
                 .accessibilityLabel("Clawdmeter")
@@ -22,10 +22,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     let watcher = ClaudeActivityWatcher()
     let updater = Updater()
     let keepAwake: KeepAwake
+    let phoneSharing: PhoneSharing
     private var notchPet: NotchPetController?
 
     override init() {
         keepAwake = KeepAwake(watcher: watcher)
+        phoneSharing = PhoneSharing(store: store)
         super.init()
     }
 

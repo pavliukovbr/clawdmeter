@@ -4,6 +4,7 @@ struct MenuPanel: View {
     @ObservedObject var store: UsageStore
     @ObservedObject var updater: Updater
     @ObservedObject var keepAwake: KeepAwake
+    @ObservedObject var phoneSharing: PhoneSharing
 
     @State private var opensAtLogin = LoginItem.isEnabled
     @State private var pettedAt: Date?
@@ -12,6 +13,7 @@ struct MenuPanel: View {
     @AppStorage(KeepAwake.modeKey) private var keepAwakeMode = KeepAwake.Mode.off.rawValue
     @AppStorage(KeepAwake.displayKey) private var keepDisplayAwake = false
     @AppStorage(Updater.autoCheckKey) private var checksAutomatically = true
+    @AppStorage(PhoneSharing.enabledKey) private var sharesWithiPhone = false
 
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
@@ -55,6 +57,12 @@ struct MenuPanel: View {
                     SettingRow(symbol: "display", tint: .indigo, title: "Keep Display On") {
                         Toggle("", isOn: $keepDisplayAwake).labelsHidden()
                     }
+                }
+                SettingRow(symbol: "iphone", tint: .teal, title: "Share with iPhone", detail: phoneDetail) {
+                    Toggle("", isOn: $sharesWithiPhone).labelsHidden()
+                }
+                if sharesWithiPhone, let pairing = phoneSharing.pairing {
+                    PairingCard(pairing: pairing) { phoneSharing.resetPairing() }
                 }
                 SettingRow(symbol: "power", tint: .green, title: "Open at Login") {
                     Toggle("", isOn: $opensAtLogin)
@@ -155,6 +163,13 @@ struct MenuPanel: View {
         .background(.quaternary.opacity(0.5), in: RoundedRectangle(cornerRadius: 10, style: .continuous))
     }
 
+    private var phoneDetail: String? {
+        guard sharesWithiPhone else { return nil }
+        if let problem = phoneSharing.problem { return problem }
+        guard let lastSeen = phoneSharing.lastSeen else { return "Waiting for your iPhone" }
+        return "iPhone checked in \(Format.relative(lastSeen, from: Date()))"
+    }
+
     private var status: String {
         guard let snapshot = store.snapshot else { return "Looking for your Claude sign in" }
         switch snapshot.status {
@@ -218,5 +233,43 @@ private struct MenuRow: View {
         .buttonStyle(.plain)
         .padding(.horizontal, -6)
         .onHover { hovering = $0 }
+    }
+}
+
+private struct PairingCard: View {
+    var pairing: PhonePairing
+    var reset: () -> Void
+
+    var body: some View {
+        HStack(alignment: .top, spacing: 12) {
+            if let url = pairing.url, let image = QRCode.image(for: url.absoluteString, side: 112) {
+                Image(nsImage: image)
+                    .interpolation(.none)
+                    .resizable()
+                    .frame(width: 112, height: 112)
+                    .padding(6)
+                    .background(.white, in: RoundedRectangle(cornerRadius: 8, style: .continuous))
+            }
+            VStack(alignment: .leading, spacing: 6) {
+                Text("Scan with the iPhone Camera")
+                    .font(.system(size: 12, weight: .semibold))
+                Text("Opens Clawdmeter on your iPhone and pairs it with this Mac. Install Tailscale on both to see your usage away from home.")
+                    .font(.system(size: 11))
+                    .foregroundStyle(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
+                HStack(spacing: 8) {
+                    Button("Copy Link") {
+                        guard let url = pairing.url else { return }
+                        NSPasteboard.general.clearContents()
+                        NSPasteboard.general.setString(url.absoluteString, forType: .string)
+                    }
+                    Button("Reset", role: .destructive, action: reset)
+                        .help("Unpairs every iPhone that used the old code")
+                }
+                .controlSize(.small)
+            }
+        }
+        .padding(.horizontal, 10)
+        .padding(.vertical, 6)
     }
 }
