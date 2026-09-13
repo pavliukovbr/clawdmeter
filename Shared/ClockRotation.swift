@@ -40,19 +40,36 @@ extension View {
     }
 
     /// Moves the view around a circle without turning it. `offset` points from the
-    /// start position to the center of the circle.
-    func orbit(period: TimeInterval, offset: CGSize, in size: CGSize, clockwise: Bool = true) -> some View {
-        let center = UnitPoint(x: 0.5 + offset.width / size.width, y: 0.5 + offset.height / size.height)
+    /// start position to the center of the circle, `phase` starts further along it.
+    func orbit(period: TimeInterval, offset: CGSize, phase: Double = 0, in size: CGSize, clockwise: Bool = true) -> some View {
+        let turn = clockwise ? phase : -phase
+        let rotated = CGSize(
+            width: offset.width * cos(turn) - offset.height * sin(turn),
+            height: offset.width * sin(turn) + offset.height * cos(turn)
+        )
+        let center = UnitPoint(x: 0.5 + rotated.width / size.width, y: 0.5 + rotated.height / size.height)
         return spin(period: period, anchor: .center, clockwise: !clockwise)
             .spin(period: period, anchor: center, clockwise: clockwise)
+            .offset(x: offset.width - rotated.width, y: offset.height - rotated.height)
     }
 
-    /// Eases the view up by `height` and back down once per period. Two opposite
-    /// orbits cancel sideways and add up vertically.
-    func bob(height: CGFloat, period: TimeInterval, in size: CGSize) -> some View {
-        let radius = CGSize(width: 0, height: -height / 4)
-        return orbit(period: period, offset: radius, in: size, clockwise: true)
-            .orbit(period: period, offset: radius, in: size, clockwise: false)
+    /// Eases the view out along `vector` and back once per period without turning it.
+    /// Two opposite orbits cancel sideways and add up along the vector. `phase` delays the
+    /// motion in radians, and `centered` swings to both sides of the resting spot.
+    func oscillate(_ vector: CGVector, period: TimeInterval, phase: Double = 0, centered: Bool = false, in size: CGSize) -> some View {
+        let quarter = hypot(vector.dx, vector.dy) / 4
+        let angle = atan2(vector.dy, vector.dx)
+        let forward = CGSize(width: quarter * cos(angle - phase), height: quarter * sin(angle - phase))
+        let backward = CGSize(width: quarter * cos(angle + phase), height: quarter * sin(angle + phase))
+        let rest = (1 - cos(phase)) / 2 - (centered ? 0.5 : 0)
+        return orbit(period: period, offset: forward, in: size, clockwise: true)
+            .orbit(period: period, offset: backward, in: size, clockwise: false)
+            .offset(x: vector.dx * rest, y: vector.dy * rest)
+    }
+
+    /// Eases the view up by `height` and back down once per period.
+    func bob(height: CGFloat, period: TimeInterval, phase: Double = 0, in size: CGSize) -> some View {
+        oscillate(CGVector(dx: 0, dy: -height), period: period, phase: phase, in: size)
     }
 }
 

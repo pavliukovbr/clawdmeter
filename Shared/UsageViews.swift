@@ -182,18 +182,27 @@ private struct DetailPanel: View {
                 .foregroundStyle(Palette.amber)
                 .lineLimit(1)
         } else if let activity = summary.activity, summary.secondary.count >= 2 {
-            HStack(spacing: 4) {
-                Text("Today")
-                    .foregroundStyle(.white.opacity(0.55))
-                Text("\(Format.tokens(activity.todayTokens)) tokens")
-                    .foregroundStyle(.white.opacity(0.9))
+            ViewThatFits(in: .horizontal) {
+                todayLine(activity, showsRequests: true)
+                todayLine(activity, showsRequests: false)
+            }
+        }
+    }
+
+    private func todayLine(_ activity: Activity, showsRequests: Bool) -> some View {
+        HStack(spacing: 4) {
+            Text("Today")
+                .foregroundStyle(.white.opacity(0.55))
+            Text("\(Format.tokens(activity.todayTokens)) tokens")
+                .foregroundStyle(.white.opacity(0.9))
+            if showsRequests {
                 Text("\(activity.todayMessages) requests")
                     .foregroundStyle(.white.opacity(0.55))
             }
-            .font(.system(size: 11, weight: .semibold))
-            .lineLimit(1)
-            .minimumScaleFactor(0.8)
         }
+        .font(.system(size: 11, weight: .semibold))
+        .lineLimit(1)
+        .fixedSize()
     }
 }
 
@@ -283,17 +292,19 @@ struct PetTrack: View {
             let x = min(max(tip - petWidth / 2, 0), max(proxy.size.width - petWidth, 0))
 
             VStack(alignment: .leading, spacing: 0) {
+                // Tinted and dimmed widgets drop spinning layers, so Clawd holds still there.
                 ClawdView(
                     mood: mood,
                     unit: unit,
                     color: fullColor ? Palette.clay : .white,
                     eyeColor: fullColor ? .black : .clear,
+                    animated: fullColor,
                     accessoriesOnLeft: x > proxy.size.width - petWidth * 1.6
                 )
                 .offset(x: x)
                 .widgetAccentable()
 
-                UsageBar(fraction: fraction, severity: severity, height: barHeight)
+                UsageBar(fraction: fraction, severity: severity, height: barHeight, glints: true)
             }
         }
         .frame(height: ClawdView.rows * unit + barHeight)
@@ -304,6 +315,7 @@ struct UsageBar: View {
     var fraction: Double
     var severity: UsageLimit.Severity
     var height: CGFloat = 6
+    var glints = false
 
     @Environment(\.widgetRenderingMode) private var renderingMode
 
@@ -317,10 +329,33 @@ struct UsageBar: View {
                 Capsule()
                     .fill(renderingMode == .fullColor ? AnyShapeStyle(Palette.fill(for: severity)) : AnyShapeStyle(.white))
                     .frame(width: filled)
+                    .overlay(alignment: .leading) {
+                        if renderingMode == .fullColor && glints && clamped > 0.04 {
+                            BarGlint()
+                        }
+                    }
+                    .clipShape(Capsule())
                     .widgetAccentable()
             }
         }
         .frame(height: height)
+    }
+}
+
+/// A soft highlight that slides along the filled part of the bar every ten seconds.
+private struct BarGlint: View {
+    var body: some View {
+        let band = CGSize(width: 18, height: 44)
+        let radius: CGFloat = 520
+        LinearGradient(
+            colors: [.white.opacity(0), .white.opacity(0.38), .white.opacity(0)],
+            startPoint: .leading,
+            endPoint: .trailing
+        )
+        .frame(width: band.width, height: band.height)
+        .rotationEffect(.degrees(16))
+        .spin(period: 10, anchor: UnitPoint(x: 0.5, y: 0.5 + radius / band.height))
+        .offset(x: -band.width - 8)
     }
 }
 

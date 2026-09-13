@@ -15,9 +15,13 @@ enum SnapshotStore {
         return try? decoder.decode(UsageSnapshot.self, from: data)
     }
 
+    /// Only percentages, reset times and daily totals are written, never tokens or account
+    /// details, and the file is readable by the current user alone.
     static func save(_ snapshot: UsageSnapshot) throws {
-        try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+        let manager = FileManager.default
+        try manager.createDirectory(at: directory, withIntermediateDirectories: true, attributes: [.posixPermissions: 0o700])
         try encoder.encode(snapshot).write(to: fileURL, options: .atomic)
+        try? manager.setAttributes([.posixPermissions: 0o600], ofItemAtPath: fileURL.path)
     }
 
     /// Inside a sandbox NSHomeDirectory points at the container, so ask the user database instead.

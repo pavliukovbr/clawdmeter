@@ -3,12 +3,11 @@ import SwiftUI
 @main
 struct ClawdmeterApp: App {
     @NSApplicationDelegateAdaptor(AppDelegate.self) private var appDelegate
-    @StateObject private var store = UsageStore()
     @AppStorage("showMenuBarIcon") private var showMenuBarIcon = true
 
     var body: some Scene {
         MenuBarExtra(isInserted: $showMenuBarIcon) {
-            MenuPanel(store: store)
+            MenuPanel(store: appDelegate.store, updater: appDelegate.updater, keepAwake: appDelegate.keepAwake)
         } label: {
             Image(nsImage: MenuBarIcon.image)
                 .accessibilityLabel("Clawdmeter")
@@ -17,9 +16,23 @@ struct ClawdmeterApp: App {
     }
 }
 
+@MainActor
 final class AppDelegate: NSObject, NSApplicationDelegate {
+    let store = UsageStore()
+    let watcher = ClaudeActivityWatcher()
+    let updater = Updater()
+    let keepAwake: KeepAwake
+    private var notchPet: NotchPetController?
+
+    override init() {
+        keepAwake = KeepAwake(watcher: watcher)
+        super.init()
+    }
+
     func applicationDidFinishLaunching(_ notification: Notification) {
         LoginItem.enableOnFirstLaunch()
+        watcher.start()
+        notchPet = NotchPetController(store: store, watcher: watcher)
     }
 
     /// Opening the app again (or clicking the widget) brings the icon back and refreshes.
