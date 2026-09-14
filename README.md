@@ -51,7 +51,7 @@ Turn on **Clawd Walks Around** and Clawd leaves the notch now and then:
 - Walks out onto the menu bar next to the notch, looks around and hops down
 - Lands on top of your windows, rides along when you drag them and falls when they close
 - Jumps between windows and wanders toward the pointer
-- Pretends to be things on your screen: a folder, a fourth window button, the pointer, and every so often something in the top left corner of the menu bar
+- Pretends to be things on your screen: a folder, a fourth window button, and every so often something in the top left corner of the menu bar
 - Gets a heart when you rest the pointer on him
 - Heads back into the notch when Claude gets to work, and comes out again once it is quiet
 

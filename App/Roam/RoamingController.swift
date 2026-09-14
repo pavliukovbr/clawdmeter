@@ -472,12 +472,9 @@ final class RoamingController: NSObject {
         } else if now >= nextApple, roll < 0.25 {
             nextApple = now + Double.random(in: 180...360)
             startDisguise(.apple, now: now)
-        } else if now >= nextDisguise, roll < 0.35 {
+        } else if now >= nextDisguise, roll < 0.35, let look = disguises(on: surface).randomElement() {
             nextDisguise = now + Double.random(in: 45...90)
-            var options: [RoamingSprite.Look] = [.cursor]
-            if surface.isFloor { options.append(.folder) }
-            if let frame = surface.windowFrame, surface.minX <= frame.minX + 2 { options.append(.trafficLight) }
-            startDisguise(options.randomElement() ?? .cursor, now: now)
+            startDisguise(look, now: now)
         } else if roll < 0.62 {
             walk(on: surface, toward: CGFloat.random(in: (surface.minX + 10)...(surface.maxX - 10)), now: now)
         } else if roll < 0.78, let target = jumpTarget() {
@@ -565,6 +562,14 @@ final class RoamingController: NSObject {
 
     // MARK: Disguises
 
+    /// What Clawd can pretend to be from where he is standing.
+    private func disguises(on surface: Surface) -> [RoamingSprite.Look] {
+        var options: [RoamingSprite.Look] = []
+        if surface.isFloor { options.append(.folder) }
+        if let frame = surface.windowFrame, surface.minX <= frame.minX + 2 { options.append(.trafficLight) }
+        return options
+    }
+
     private func startDisguise(_ look: RoamingSprite.Look, now: CFTimeInterval) {
         guard let sprite else { return }
         var windowID: Int?
@@ -594,11 +599,6 @@ final class RoamingController: NSObject {
             } else {
                 disguise.until = now
             }
-        case .cursor:
-            let pointer = pointerLocation()
-            position.x += (pointer.x + 22 - position.x) * 0.12
-            position.y += (pointer.y + 34 - position.y) * 0.12
-            disguise.returnPoint = position
         case .folder, .clawd, .webSuit, .popStar:
             break
         }

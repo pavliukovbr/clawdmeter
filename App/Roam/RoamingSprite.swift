@@ -5,7 +5,7 @@ import QuartzCore
 /// The layer is anchored at his feet, so moving it moves the point he stands on.
 final class RoamingSprite {
     enum Look: Equatable {
-        case clawd, apple, folder, cursor, trafficLight
+        case clawd, apple, folder, trafficLight
         /// Dressed up for the easter eggs, still Clawd underneath.
         case webSuit, popStar
 
@@ -195,7 +195,6 @@ final class RoamingSprite {
         case .clawd, .webSuit, .popStar: size = buildBody(next)
         case .apple: size = buildApple()
         case .folder: size = buildFolder()
-        case .cursor: size = buildCursor()
         case .trafficLight: size = buildTrafficLight()
         }
 
@@ -334,34 +333,6 @@ final class RoamingSprite {
         content.addSublayer(eyeLayer)
         eyes = eyeLayer
         return CGSize(width: 14 * u, height: 11.5 * u)
-    }
-
-    private func buildCursor() -> CGSize {
-        let arrow = CAShapeLayer()
-        let path = CGMutablePath()
-        path.addLines(between: [
-            CGPoint(x: 2, y: 1), CGPoint(x: 2, y: 23), CGPoint(x: 7.5, y: 18),
-            CGPoint(x: 11, y: 26.5), CGPoint(x: 14.5, y: 25), CGPoint(x: 11, y: 16.5), CGPoint(x: 18, y: 16.5),
-        ])
-        path.closeSubpath()
-        arrow.path = path
-        arrow.fillColor = NSColor.black.cgColor
-        arrow.strokeColor = NSColor.white.cgColor
-        arrow.lineWidth = 1.6
-        arrow.lineJoin = .round
-        arrow.frame = CGRect(x: 0, y: 0, width: 20, height: 28)
-        content.addSublayer(arrow)
-
-        let eyeLayer = CAShapeLayer()
-        let eyePath = CGMutablePath()
-        eyePath.addRect(CGRect(x: 4.2, y: 10, width: 1.6, height: 3.2))
-        eyePath.addRect(CGRect(x: 7.6, y: 12, width: 1.6, height: 3.2))
-        eyeLayer.path = eyePath
-        eyeLayer.fillColor = SpriteColors.clayLight.cgColor
-        eyeLayer.frame = CGRect(x: 0, y: 0, width: 20, height: 28)
-        content.addSublayer(eyeLayer)
-        eyes = eyeLayer
-        return CGSize(width: 20, height: 28)
     }
 
     /// A fourth window button in Clawd orange.
