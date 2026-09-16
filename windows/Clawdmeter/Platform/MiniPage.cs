@@ -145,6 +145,19 @@ html, body {
   display: none;
 }
 #clawd.sleeping #z { display: block; }
+#ask {
+  position: absolute;
+  right: 20px;
+  top: 46px;
+  font-size: 84px;
+  font-weight: 200;
+  color: #f5b24c;
+  display: none;
+}
+#ask.on {
+  display: block;
+  -webkit-animation: pulse 1.4s infinite;
+}
 #offline {
   position: absolute;
   left: 22px;
@@ -170,6 +183,7 @@ html, body {
     <div id="z">z z</div>
   </div>
   <div id="today"></div>
+  <div id="ask">!</div>
   <div id="offline">No answer from the PC</div>
 </div>
 <script>
@@ -289,6 +303,7 @@ function paint(data) {
 
   el("today").innerHTML = data.today ? data.today + " tokens today<br>" + data.requests + " requests" : "";
   el("live").className = data.working ? "on" : "";
+  el("ask").className = data.asking ? "on" : "";
   el("clawd").className = data.mood || "idle";
   state.mood = data.mood || "idle";
   state.seconds = data.resetSeconds || 0;

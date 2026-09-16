@@ -35,6 +35,9 @@ public partial class App : Application
     private ToolStripMenuItem? startupItem;
     private ToolStripMenuItem? autoUpdateItem;
     private ToolStripMenuItem? miniItem;
+    private ToolStripMenuItem? addressItem;
+    private ToolStripMenuItem? awakeParent;
+    private ToolStripMenuItem? header;
     private readonly List<(KeepAwakeMode Mode, ToolStripMenuItem Item)> awakeItems = new();
 
     protected override void OnStartup(StartupEventArgs args)
@@ -120,7 +123,12 @@ public partial class App : Application
     private ContextMenuStrip BuildMenu()
     {
         var settings = Settings.Current;
-        var strip = new ContextMenuStrip { ShowImageMargin = false };
+        // The tick margin stays on, otherwise there is no way to tell what is turned on.
+        var strip = new ContextMenuStrip { ShowCheckMargin = true, ShowImageMargin = false };
+
+        header = new ToolStripMenuItem("Clawdmeter") { Enabled = false };
+        strip.Items.Add(header);
+        strip.Items.Add(new ToolStripSeparator());
 
         showPanelItem = Toggle("Show the panel", value =>
         {
@@ -151,6 +159,7 @@ public partial class App : Application
         strip.Items.Add(new ToolStripSeparator());
 
         var awake = new ToolStripMenuItem("Keep the PC awake");
+        awakeParent = awake;
         awakeItems.Clear();
         foreach (var mode in new[] { KeepAwakeMode.Off, KeepAwakeMode.WhileClaudeWorks, KeepAwakeMode.Always })
         {
@@ -197,8 +206,9 @@ public partial class App : Application
             settings.Save();
             if (value) ShowPhoneAddress();
         });
+        addressItem = Item("Show the phone address", ShowPhoneAddress);
         strip.Items.Add(miniItem);
-        strip.Items.Add(Item("Show the phone address", ShowPhoneAddress));
+        strip.Items.Add(addressItem);
         strip.Items.Add(new ToolStripSeparator());
         strip.Items.Add(startupItem);
         strip.Items.Add(autoUpdateItem);
@@ -221,6 +231,24 @@ public partial class App : Application
         if (startupItem is not null) startupItem.Checked = StartupItem.IsEnabled;
         if (autoUpdateItem is not null) autoUpdateItem.Checked = settings.UpdateAutomatically;
         if (miniItem is not null) miniItem.Checked = settings.MiniDisplay;
+        if (addressItem is not null) addressItem.Enabled = settings.MiniDisplay;
+        if (awakeParent is not null)
+        {
+            var mode = settings.KeepAwake switch
+            {
+                KeepAwakeMode.WhileClaudeWorks => "while Claude works",
+                KeepAwakeMode.Always => "always",
+                _ => "off",
+            };
+            awakeParent.Text = "Keep the PC awake: " + mode;
+        }
+        if (header is not null)
+        {
+            var summary = new UsageSummary(store?.Snapshot, DateTimeOffset.Now);
+            header.Text = summary.HasData
+                ? $"{summary.PlanName}   {summary.Primary.Title} {summary.Primary.Value}"
+                : "Clawdmeter";
+        }
         foreach (var (mode, item) in awakeItems)
         {
             item.Checked = settings.KeepAwake == mode;

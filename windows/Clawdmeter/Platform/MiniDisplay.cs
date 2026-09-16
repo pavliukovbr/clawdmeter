@@ -155,6 +155,9 @@ public sealed class MiniDisplay : IDisposable
         var now = DateTimeOffset.Now;
         var summary = new UsageSummary(store.Snapshot, now);
         var working = watcher.IsClaudeWorking(TimeSpan.FromSeconds(45));
+        var turn = watcher.LastFinishedTurn;
+        // Claude has stopped and the turn is fresh, so it is your move.
+        var asking = !working && turn is not null && (now - turn.Date).TotalMinutes < 10;
         var seconds = store.Snapshot?.Session?.ResetsAt is { } reset && reset > now
             ? (int)(reset - now).TotalSeconds
             : 0;
@@ -170,6 +173,10 @@ public sealed class MiniDisplay : IDisposable
             ["note"] = summary.Note,
             ["mood"] = summary.Mood.ToString().ToLowerInvariant(),
             ["working"] = working,
+            ["activity"] = (watcher.Latest?.Activity ?? Activity.PetActivity.Idle).ToString().ToLowerInvariant(),
+            ["asking"] = asking,
+            ["turnId"] = turn?.Date.ToUnixTimeSeconds(),
+            ["turnText"] = turn is null ? null : Format.Finished(turn),
             ["resetSeconds"] = seconds,
             ["today"] = summary.Activity is null ? null : Format.Tokens(summary.Activity.TodayTokens),
             ["requests"] = summary.Activity?.TodayMessages ?? 0,
