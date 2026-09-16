@@ -1,0 +1,29 @@
+Package: com.pavliukovbr.clawdmeter
+Name: Clawdmeter
+Version: 1.0.0
+Architecture: iphoneos-arm
+Depends: uikittools
+Section: Utilities
+Priority: optional
+Installed-Size: 144
+Author: pavliukovbr
+Maintainer: pavliukovbr
+Homepage: https://github.com/pavliukovbr/clawdmeter
+Depiction: https://github.com/pavliukovbr/clawdmeter/tree/main/oldphone
+Description: Claude plan usage on a phone you stopped using
+ Stand a retired iPhone on your desk and it turns into a little dashboard: the big
+ percentage, which limit it is, how long until it resets, the bars and the day total.
+ Clawd walks along the bottom of the screen, carries a laptop while Claude types, a
+ book while it reads, a hard hat while it builds, and curls up for a nap when nothing
+ is happening.
+ .
+ The numbers come from the Clawdmeter app on your PC over your own network, so the
+ phone never signs in to anything. Open it, hold a finger on the screen and type the
+ address of the PC and the key.
+ .
+ Built for armv7 and iOS 9, so an iPhone 4S, a 4 or a 3GS is enough.
+Filename: debs/Clawdmeter_1.0.0_iphoneos-arm.deb
+Size: 52062
+MD5sum: 68335bbd3059666af59c4e6dc8708ba7
+SHA1: eddfbb2b8c13e3f7b6ab3204d1fb8bf938f2e3a0
+SHA256: 4c4b36b63cec06cf4baac5b2ce9253474e3208ae37d23d17587109bdf76745de

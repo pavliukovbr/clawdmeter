@@ -109,6 +109,19 @@ It is built for old browsers, so even a phone from 2011 keeps it on screen. On a
 
 The page only answers phones on your own network and only with the key that is part of the address, it listens on port 47848, and it is off until you turn it on.
 
+### A real app on a jailbroken iPhone
+
+If the old phone is a jailbroken iPhone on iOS 9, there is a native app for it instead of a web page: an icon on the Home Screen, the same numbers, and Clawd living at the bottom of the screen as a little pet you can pick up, stroke and feed. It runs on an iPhone 4S, a 4 and a 3GS.
+
+It installs from Cydia, so the phone needs nothing else:
+
+1. In Cydia open **Sources**, tap **Edit**, then **Add**.
+2. Type `https://pavliukovbr.github.io/clawdmeter/cydia/` and tap **Add Source**. The source carries no signing key, so Cydia warns about that once.
+3. Open the source, pick **Clawdmeter** and tap **Install**.
+4. Open the app, hold a finger on the screen and type the address of the PC and the key, the same ones **Show the phone address** gives you.
+
+Without Cydia, or to put your own build on the phone, `oldphone/install.sh` copies the app over SSH instead. [The old phone notes](oldphone/README.md) have both ways and how the package is made.
+
 ## Works with every plan
 
 Clawdmeter detects your plan and adapts on its own.

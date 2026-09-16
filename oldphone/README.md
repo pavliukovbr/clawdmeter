@@ -21,8 +21,8 @@ coloured squares, so there is not a single image in the bundle.
 **On the phone**
 
 - A jailbreak (iOS 9 has several, pick the one for your build).
-- OpenSSH and uikittools from Cydia, so the Mac can copy the app over and refresh the
-  Home Screen.
+- Cydia, which every jailbreak installs. That is enough on its own, see below. For the
+  SSH way instead you need OpenSSH and uikittools from Cydia.
 - The phone and the PC on the same network.
 
 **On the Mac**
@@ -37,7 +37,38 @@ coloured squares, so there is not a single image in the bundle.
   serves `http://<pc>:47848/usage?k=<key>`. There is no login on the phone, the key in
   the address is the whole story, so keep this on your own network.
 
+## From Cydia
+
+The easy way, and the only one that needs nothing but the phone:
+
+1. In Cydia open **Sources**, tap **Edit**, then **Add**.
+2. Type `https://pavliukovbr.github.io/clawdmeter/cydia/` and tap **Add Source**. Cydia
+   warns once that the source is not signed, which it is not. Carry on.
+3. Open the source, pick **Clawdmeter** and tap **Install**. uikittools comes with it.
+4. Open the app, hold a finger on the screen and type the address of the PC and the key.
+
+To build that repository yourself, from this folder:
+
+```sh
+./package.sh
+./repo.sh
+```
+
+`package.sh` builds the app if it is not there yet and wraps it in
+`build/Clawdmeter_<version>_iphoneos-arm.deb`, with the bundle at
+`/Applications/Clawdmeter.app`, owned by root, a postinst that runs `uicache` and a prerm
+that takes the app and what you typed on the phone back off. There is no dpkg on macOS,
+so it puts the archive together itself with `ar` and `tar`. The version sits on one line
+at the top of the script, bump it there and nowhere else.
+
+`repo.sh` runs `package.sh`, copies the result into `../docs/cydia/debs` and writes the
+`Packages`, `Packages.gz`, `Release` and `index.html` that make a Cydia source out of a
+folder. GitHub Pages serves `docs/`, so committing that folder is the whole deployment.
+Nothing is signed, which is why Cydia asks.
+
 ## The two commands
+
+Without Cydia, or to push a build straight to a phone you already have on SSH:
 
 ```sh
 ./build.sh

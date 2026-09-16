@@ -1,0 +1,8 @@
+Origin: Clawdmeter
+Label: Clawdmeter
+Suite: stable
+Version: 1.0
+Codename: clawdmeter
+Architectures: iphoneos-arm
+Components: main
+Description: Clawd and your Claude plan usage on an iPhone that is too old for anything else
