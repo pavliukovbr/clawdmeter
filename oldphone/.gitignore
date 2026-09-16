@@ -1,0 +1,3 @@
+# Everything the build makes: the fetched iOS 9.3 SDK, the compiled app, and the
+# Settings.plist that install.sh writes with your own PC address and key.
+build/
