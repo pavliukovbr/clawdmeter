@@ -56,6 +56,8 @@ public sealed class RoamingController : IDisposable
     private const double CaptionButton = 46;
     private const double WalkSpeed = 36;
     private const double HurrySpeed = 110;
+    private const double ScanEvery = 0.5;
+    private const double StuckAfter = 2;
 
     private readonly ClaudeActivityWatcher watcher;
     private readonly Dispatcher dispatcher = Dispatcher.CurrentDispatcher;
@@ -91,6 +93,7 @@ public sealed class RoamingController : IDisposable
     private double nextLogo;
     private double pettedUntil;
     private double? hoverSince;
+    private double? stuckSince;
 
     private Jump? jump;
     private Disguise? disguise;
@@ -178,7 +181,14 @@ public sealed class RoamingController : IDisposable
 
         var covered = IsFullScreenInFront();
         window.Visibility = covered ? Visibility.Hidden : Visibility.Visible;
-        if (covered || now < easterEggUntil) return;
+        if (covered)
+        {
+            // Nobody can see him behind a full screen window, so the frame loop stops as well.
+            StopStepping();
+            return;
+        }
+        if (mode != Mode.Away) StartStepping();
+        if (now < easterEggUntil) return;
 
         if (mode == Mode.Away)
         {
@@ -342,6 +352,7 @@ public sealed class RoamingController : IDisposable
     {
         StopStepping();
         ClearProps();
+        sprite?.Retire();
         sprite = null;
         web = null;
         window?.Close();
@@ -376,10 +387,16 @@ public sealed class RoamingController : IDisposable
         var delta = Math.Clamp(now - lastFrame, 0, 1.0 / 20);
         lastFrame = now;
 
-        if (now - lastScan > 0.12)
+        // The full sweep of every window is expensive, so between sweeps only the
+        // window under his feet is read, which is what he needs to ride it.
+        if (now - lastScan > ScanEvery)
         {
             Scan();
             lastScan = now;
+        }
+        else
+        {
+            TrackStanding();
         }
         WatchPointer(now);
 
@@ -414,6 +431,8 @@ public sealed class RoamingController : IDisposable
                 break;
         }
 
+        Unstick(now);
+
         if (mode is Mode.Walking or Mode.Idle or Mode.Resting or Mode.Partying && standing is null && !leaving)
         {
             fallSpeed = 0;
@@ -421,6 +440,45 @@ public sealed class RoamingController : IDisposable
             sprite.SetPose(ClawdPose.Fall);
         }
         sprite.Position = position;
+    }
+
+    /// Several moves hand over to an animation and wait to be called back. If that call never
+    /// comes Clawd would stand there for good, so after a couple of seconds he just drops.
+    private void Unstick(double now)
+    {
+        if (sprite is null) return;
+        var waiting = mode switch
+        {
+            Mode.Jumping => jump is null,
+            Mode.Disguised => disguise is null,
+            Mode.Swinging => swing is null,
+            Mode.Resting => leaving,
+            _ => false,
+        };
+        if (!waiting || sprite.Morphing)
+        {
+            stuckSince = null;
+            return;
+        }
+
+        stuckSince ??= now;
+        if (now - stuckSince.Value < StuckAfter) return;
+        stuckSince = null;
+
+        if (leaving)
+        {
+            Settle();
+            return;
+        }
+        jump = null;
+        disguise = null;
+        swing = null;
+        standing = null;
+        fallSpeed = 0;
+        mode = Mode.Falling;
+        HideWeb();
+        if (sprite.Look == ClawdLook.Clawd) sprite.SetPose(ClawdPose.Fall);
+        else sprite.Morph(ClawdLook.Clawd, () => sprite?.SetPose(ClawdPose.Fall));
     }
 
     private void Fall(double delta, double now)
@@ -555,6 +613,31 @@ public sealed class RoamingController : IDisposable
         standing = moved.Contains(position.X, 2) ? moved : null;
     }
 
+    /// One window read, so he keeps up with the one he is standing on between full sweeps.
+    private void TrackStanding()
+    {
+        if (window is null || standing is not { WindowRect: { } old } current) return;
+        if (ScreenSurfaces.WindowRect((nint)current.Id, window.Scale) is not { } fresh)
+        {
+            standing = null;
+            return;
+        }
+
+        var dx = fresh.Left - old.Left;
+        var dy = fresh.Top - old.Top;
+        if (dx == 0 && dy == 0) return;
+        position.X += dx;
+        position.Y = current.Y + dy;
+        var moved = current with
+        {
+            Y = current.Y + dy,
+            MinX = current.MinX + dx,
+            MaxX = current.MaxX + dx,
+            WindowRect = fresh,
+        };
+        standing = moved.Contains(position.X, 2) ? moved : null;
+    }
+
     private Surface? Floor()
     {
         foreach (var surface in surfaces)
@@ -578,7 +661,10 @@ public sealed class RoamingController : IDisposable
         if (id is not { } key) return null;
         foreach (var surface in surfaces)
         {
-            if (surface.Id == key && surface.WindowRect is { } frame) return frame;
+            if (surface.Id != key || surface.WindowRect is not { } frame) continue;
+            // The sweep only runs twice a second, so this one window is read again here
+            // to keep a disguise pinned to it while it is being dragged.
+            return window is null ? frame : ScreenSurfaces.WindowRect((nint)key, window.Scale) ?? frame;
         }
         return null;
     }
@@ -1144,6 +1230,8 @@ public sealed class RoamingController : IDisposable
     {
         foreach (var prop in partyProps)
         {
+            // The ball, the lights and the notes all loop forever until they are stopped.
+            ClawdMotion.Stop(prop);
             window?.Effects.Children.Remove(prop);
         }
         partyProps.Clear();

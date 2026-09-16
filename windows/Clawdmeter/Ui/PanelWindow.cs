@@ -184,7 +184,9 @@ public sealed class PanelWindow : Window
 
     private void OnDragStart(object sender, MouseButtonEventArgs args)
     {
+        var from = new Point(Left, Top);
         DragMove();
+        if (Math.Abs(Left - from.X) < 1 && Math.Abs(Top - from.Y) < 1) return;
         var settings = Settings.Current;
         settings.PanelLeft = Left;
         settings.PanelTop = Top;
@@ -195,12 +197,18 @@ public sealed class PanelWindow : Window
     {
         var settings = Settings.Current;
         var area = SystemParameters.WorkArea;
-        Left = settings.PanelLeft is { } left && left > area.Left - Width && left < area.Right
-            ? left
-            : area.Right - Width - 12;
-        Top = settings.PanelTop is { } top && top > area.Top - ActualHeight && top < area.Bottom
-            ? top
-            : area.Top + 24;
+
+        // Any monitor counts, so a panel parked on a second screen stays there.
+        var desktop = new Rect(
+            SystemParameters.VirtualScreenLeft,
+            SystemParameters.VirtualScreenTop,
+            SystemParameters.VirtualScreenWidth,
+            SystemParameters.VirtualScreenHeight);
+        var visible = settings.PanelLeft is { } left && settings.PanelTop is { } top
+                      && new Rect(left, top, Width, Math.Max(ActualHeight, 80)).IntersectsWith(desktop);
+
+        Left = visible ? settings.PanelLeft!.Value : area.Right - Width - 12;
+        Top = visible ? settings.PanelTop!.Value : area.Top + 24;
     }
 
     private static TextBlock Label(double size, double opacity) => new()

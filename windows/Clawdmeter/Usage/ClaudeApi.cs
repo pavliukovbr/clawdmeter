@@ -31,10 +31,7 @@ public static class CredentialsReader
                 var credentials = Parse(File.ReadAllText(path));
                 if (credentials is not null) return credentials;
             }
-            catch (IOException)
-            {
-            }
-            catch (UnauthorizedAccessException)
+            catch (Exception exception) when (exception is IOException or UnauthorizedAccessException or JsonException)
             {
             }
         }

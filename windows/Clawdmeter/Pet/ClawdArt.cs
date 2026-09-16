@@ -45,6 +45,52 @@ public sealed class ClawdPart
     }
 }
 
+/// Takes the animations off things before they are thrown away.
+/// A looping animation never ends, so its clock holds on to the element and the transform
+/// for as long as the app runs. Everything that drops a visual goes through here first.
+public static class ClawdMotion
+{
+    public static void Stop(UIElement? element)
+    {
+        if (element is null) return;
+        element.BeginAnimation(UIElement.OpacityProperty, null);
+        Stop(element.RenderTransform);
+
+        var children = VisualTreeHelper.GetChildrenCount(element);
+        for (var index = 0; index < children; index++)
+        {
+            if (VisualTreeHelper.GetChild(element, index) is UIElement child) Stop(child);
+        }
+    }
+
+    private static void Stop(Transform? transform)
+    {
+        switch (transform)
+        {
+            case TransformGroup group:
+                foreach (var part in group.Children)
+                {
+                    Stop(part);
+                }
+                break;
+
+            case TranslateTransform shift:
+                shift.BeginAnimation(TranslateTransform.XProperty, null);
+                shift.BeginAnimation(TranslateTransform.YProperty, null);
+                break;
+
+            case ScaleTransform scale:
+                scale.BeginAnimation(ScaleTransform.ScaleXProperty, null);
+                scale.BeginAnimation(ScaleTransform.ScaleYProperty, null);
+                break;
+
+            case RotateTransform turn:
+                turn.BeginAnimation(RotateTransform.AngleProperty, null);
+                break;
+        }
+    }
+}
+
 /// The layers of one drawn look, handed back so the sprite can animate them.
 public sealed class ClawdPieces
 {

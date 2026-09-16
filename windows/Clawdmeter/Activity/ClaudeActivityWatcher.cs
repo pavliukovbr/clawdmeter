@@ -19,7 +19,9 @@ public sealed record ActivityEvent(PetActivity Activity, DateTimeOffset Date, st
 public sealed class ClaudeActivityWatcher : IDisposable
 {
     private readonly FileSystemWatcher? watcher;
-    private readonly System.Timers.Timer poll = new(2000);
+    private readonly System.Timers.Timer poll = new(5000);
+    /// Claude Code appends to its log many times a turn, so wait for the writing to settle.
+    private readonly System.Timers.Timer settle = new(700) { AutoReset = false };
     private readonly object gate = new();
     private string? newestFile;
     private DateTime newestWriteTime;
@@ -45,11 +47,14 @@ public sealed class ClaudeActivityWatcher : IDisposable
             {
                 IncludeSubdirectories = true,
                 NotifyFilter = NotifyFilters.LastWrite | NotifyFilters.Size | NotifyFilters.FileName,
+                InternalBufferSize = 64 * 1024,
             };
             watcher.Changed += (_, _) => Schedule();
             watcher.Created += (_, _) => Schedule();
+            watcher.Error += (_, _) => Schedule();
             watcher.EnableRaisingEvents = true;
         }
+        settle.Elapsed += (_, _) => Scan();
         poll.Elapsed += (_, _) => Scan();
         poll.AutoReset = true;
         poll.Start();
@@ -65,7 +70,11 @@ public sealed class ClaudeActivityWatcher : IDisposable
         return DateTimeOffset.Now - latest.Date < within;
     }
 
-    private void Schedule() => Scan();
+    private void Schedule()
+    {
+        settle.Stop();
+        settle.Start();
+    }
 
     private void Scan()
     {
@@ -253,6 +262,7 @@ public sealed class ClaudeActivityWatcher : IDisposable
     public void Dispose()
     {
         watcher?.Dispose();
+        settle.Dispose();
         poll.Dispose();
     }
 }

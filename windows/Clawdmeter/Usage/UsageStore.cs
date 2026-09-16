@@ -22,7 +22,7 @@ public sealed class UsageStore : IDisposable
     public UsageStore()
     {
         Snapshot = LoadCached();
-        timer.Elapsed += async (_, _) => await Refresh().ConfigureAwait(false);
+        timer.Elapsed += (_, _) => _ = Refresh();
         timer.AutoReset = true;
         SystemEvents.PowerModeChanged += OnPowerModeChanged;
     }
@@ -34,6 +34,19 @@ public sealed class UsageStore : IDisposable
     }
 
     public async Task Refresh(CancellationToken cancel = default)
+    {
+        try
+        {
+            await RefreshInner(cancel).ConfigureAwait(false);
+        }
+        catch (Exception exception) when (exception is not OperationCanceledException)
+        {
+            // A bad log line or a locked file is not worth taking the app down for.
+            Commit(Keep(Snapshot?.Activity, SnapshotStatus.Offline));
+        }
+    }
+
+    private async Task RefreshInner(CancellationToken cancel)
     {
         if (!await gate.WaitAsync(0, cancel).ConfigureAwait(false)) return;
         try
@@ -149,7 +162,8 @@ public sealed class UsageStore : IDisposable
     public void Dispose()
     {
         SystemEvents.PowerModeChanged -= OnPowerModeChanged;
+        timer.Stop();
         timer.Dispose();
-        gate.Dispose();
+        // A refresh may still be finishing, and it releases the gate on its way out.
     }
 }

@@ -32,6 +32,7 @@ public sealed class RoamingSprite
     private bool facingLeft;
     private Point position;
     private int generation;
+    private long morphEnds;
 
     public RoamingSprite(Canvas host)
     {
@@ -93,6 +94,10 @@ public sealed class RoamingSprite
         ApplyPose();
     }
 
+    /// True while Clawd is halfway through changing his look. It runs out on its own,
+    /// so nothing can hang on it if the animation never reports back.
+    public bool Morphing => Environment.TickCount64 < morphEnds;
+
     /// Shrinks into a little puff of dust and comes back as something else.
     public void Morph(ClawdLook next, Action? done = null)
     {
@@ -102,6 +107,7 @@ public sealed class RoamingSprite
             return;
         }
         Puff();
+        morphEnds = Environment.TickCount64 + 900;
         var mark = ++generation;
         var shrink = new DoubleAnimation(0.2, TimeSpan.FromSeconds(0.13))
         {
@@ -119,6 +125,7 @@ public sealed class RoamingSprite
             };
             squash.BeginAnimation(ScaleTransform.ScaleXProperty, grow);
             squash.BeginAnimation(ScaleTransform.ScaleYProperty, grow);
+            morphEnds = 0;
             done?.Invoke();
         };
         squash.BeginAnimation(ScaleTransform.ScaleXProperty, shrink);
@@ -129,6 +136,7 @@ public sealed class RoamingSprite
     public void Reset()
     {
         generation++;
+        morphEnds = 0;
         squash.BeginAnimation(ScaleTransform.ScaleXProperty, null);
         squash.BeginAnimation(ScaleTransform.ScaleYProperty, null);
         squash.ScaleX = 1;
@@ -251,6 +259,7 @@ public sealed class RoamingSprite
         {
             foreach (var star in stars)
             {
+                ClawdMotion.Stop(star);
                 extras.Children.Remove(star);
             }
         });
@@ -261,16 +270,40 @@ public sealed class RoamingSprite
         tilt.Angle = radians * 180 / Math.PI;
     }
 
+    /// Stops everything and takes Clawd, and any dust still in the air, off the canvas.
+    public void Retire()
+    {
+        generation++;
+        morphEnds = 0;
+        ClearExtras();
+        foreach (UIElement leftover in host.Children)
+        {
+            ClawdMotion.Stop(leftover);
+        }
+        host.Children.Clear();
+    }
+
     // MARK: Building
 
     private void Rebuild(ClawdLook next)
     {
+        ClawdMotion.Stop(pieces.Content);
         flipper.Children.Remove(pieces.Content);
-        extras.Children.Clear();
+        ClearExtras();
         pieces = ClawdArt.Build(next);
         Look = next;
         Install(pieces);
         Position = position;
+    }
+
+    /// The heart, the sleeping Zs and the stars all loop, so they are stopped as they go.
+    private void ClearExtras()
+    {
+        foreach (UIElement extra in extras.Children)
+        {
+            ClawdMotion.Stop(extra);
+        }
+        extras.Children.Clear();
     }
 
     private void Install(ClawdPieces next)
@@ -313,7 +346,7 @@ public sealed class RoamingSprite
         pieces.LegsA?.Rest();
         pieces.LegsB?.Rest();
         pieces.Eyes?.Rest();
-        extras.Children.Clear();
+        ClearExtras();
         SetEyes(ClawdEyes.Open);
 
         switch (Pose)
@@ -492,6 +525,7 @@ public sealed class RoamingSprite
         {
             foreach (var dot in dots)
             {
+                ClawdMotion.Stop(dot);
                 host.Children.Remove(dot);
             }
         });

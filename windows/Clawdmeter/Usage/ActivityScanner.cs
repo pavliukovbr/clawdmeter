@@ -14,6 +14,9 @@ public sealed class ActivityScanner
     private readonly Dictionary<string, Record> records = new(StringComparer.Ordinal);
     private DateTimeOffset? lastActiveAt;
 
+    /// How much of a file one pass will read, so a huge session log cannot spike memory.
+    private const long MaxBytesPerPass = 4 * 1024 * 1024;
+
     private static readonly string[] TokenFields =
     {
         "input_tokens", "output_tokens", "cache_creation_input_tokens", "cache_read_input_tokens",
@@ -28,8 +31,17 @@ public sealed class ActivityScanner
         var windowStart = today.AddDays(-6);
         var found = false;
 
-        foreach (var path in Directory.EnumerateFiles(root, "*.jsonl", SearchOption.AllDirectories))
+        var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        var walk = new EnumerationOptions
         {
+            RecurseSubdirectories = true,
+            IgnoreInaccessible = true,
+            AttributesToSkip = FileAttributes.ReparsePoint,
+        };
+
+        foreach (var path in Directory.EnumerateFiles(root, "*.jsonl", walk))
+        {
+            seen.Add(path);
             found = true;
             FileInfo file;
             try
@@ -50,6 +62,11 @@ public sealed class ActivityScanner
 
         if (!found) return null;
 
+        foreach (var stale in offsets.Keys.Where(path => !seen.Contains(path)).ToList())
+        {
+            offsets.Remove(stale);
+        }
+
         foreach (var key in records.Where(pair => pair.Value.Date < windowStart).Select(pair => pair.Key).ToList())
         {
             records.Remove(key);
@@ -60,7 +77,7 @@ public sealed class ActivityScanner
             .ToList();
         foreach (var record in records.Values)
         {
-            var index = (int)(record.Date.Date - windowStart.Date).TotalDays;
+            var index = (int)(record.Date.ToLocalTime().Date - windowStart.Date).TotalDays;
             if (index < 0 || index >= days.Count) continue;
             days[index].Tokens += record.Tokens;
             days[index].Messages += 1;
@@ -73,8 +90,10 @@ public sealed class ActivityScanner
         try
         {
             using var stream = new FileStream(file.FullName, FileMode.Open, FileAccess.Read, FileShare.ReadWrite);
+            var available = stream.Length - offset;
+            if (available <= 0) return offset;
             stream.Seek(offset, SeekOrigin.Begin);
-            var buffer = new byte[stream.Length - offset];
+            var buffer = new byte[Math.Min(available, MaxBytesPerPass)];
             var read = stream.Read(buffer, 0, buffer.Length);
             var lastNewline = Array.LastIndexOf(buffer, (byte)'\n', Math.Max(read - 1, 0));
             if (lastNewline < 0) return offset;

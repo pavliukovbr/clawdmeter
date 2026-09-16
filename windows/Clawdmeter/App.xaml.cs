@@ -1,6 +1,8 @@
 using System.Drawing;
+using System.Runtime.InteropServices;
 using System.Windows;
 using System.Windows.Forms;
+using System.Windows.Threading;
 using Clawdmeter.Activity;
 using Clawdmeter.Pet;
 using Clawdmeter.Platform;
@@ -14,6 +16,7 @@ public partial class App : Application
 {
     private Mutex? single;
     private NotifyIcon? tray;
+    private ContextMenuStrip? menu;
     private ClaudeActivityWatcher? watcher;
     private UsageStore? store;
     private PanelWindow? panel;
@@ -21,6 +24,16 @@ public partial class App : Application
     private KeepAwake? keepAwake;
     private FinishedAlert? alert;
     private Updater? updater;
+    private bool updatePromptOpen;
+
+    private ToolStripMenuItem? showPanelItem;
+    private ToolStripMenuItem? onTopItem;
+    private ToolStripMenuItem? walksItem;
+    private ToolStripMenuItem? notifyItem;
+    private ToolStripMenuItem? displayItem;
+    private ToolStripMenuItem? startupItem;
+    private ToolStripMenuItem? autoUpdateItem;
+    private readonly List<(KeepAwakeMode Mode, ToolStripMenuItem Item)> awakeItems = new();
 
     protected override void OnStartup(StartupEventArgs args)
     {
@@ -33,79 +46,107 @@ public partial class App : Application
         }
 
         ShutdownMode = ShutdownMode.OnExplicitShutdown;
+        DispatcherUnhandledException += OnDispatcherError;
+        AppDomain.CurrentDomain.UnhandledException += (_, error) => Log(error.ExceptionObject as Exception);
+        TaskScheduler.UnobservedTaskException += (_, error) =>
+        {
+            Log(error.Exception);
+            error.SetObserved();
+        };
 
-        watcher = new ClaudeActivityWatcher();
-        store = new UsageStore();
-        store.Updated += snapshot => Dispatcher.Invoke(() => panel?.Show(snapshot));
-
-        panel = new PanelWindow();
-        panel.MenuRequested += ShowMenu;
-        panel.Show(store.Snapshot);
-        if (Settings.Current.ShowPanel) panel.Show();
-
-        roaming = new RoamingController(watcher);
-        roaming.Start();
-
-        keepAwake = new KeepAwake(watcher);
-        keepAwake.Start();
-
-        alert = new FinishedAlert(watcher);
-        alert.Start();
-
-        updater = new Updater();
-        updater.UpdateReady += info => Dispatcher.Invoke(() => OfferUpdate(info, quiet: true));
-        updater.StartAutomaticChecks();
-
+        // The tray icon comes first, so a failure further down still leaves a way to quit.
         BuildTray();
-        store.Start();
+
+        try
+        {
+            watcher = new ClaudeActivityWatcher();
+            store = new UsageStore();
+            store.Updated += snapshot => Dispatcher.BeginInvoke(() => panel?.Show(snapshot));
+
+            panel = new PanelWindow();
+            panel.MenuRequested += ShowMenu;
+            panel.Show(store.Snapshot);
+            if (Settings.Current.ShowPanel) panel.Show();
+
+            roaming = new RoamingController(watcher);
+            roaming.Start();
+
+            keepAwake = new KeepAwake(watcher);
+            keepAwake.Start();
+
+            alert = new FinishedAlert(watcher);
+            alert.Start();
+
+            updater = new Updater();
+            // An update leaves through the same door as Quit, so the tray icon goes with it.
+            updater.Shutdown = Quit;
+            updater.UpdateReady += info => Dispatcher.BeginInvoke(() => OfferUpdate(info));
+            updater.StartAutomaticChecks();
+
+            store.Start();
+        }
+        catch (Exception exception)
+        {
+            Log(exception);
+            System.Windows.MessageBox.Show(
+                "Clawdmeter could not start everything up. The icon in the notification area still works.",
+                "Clawdmeter");
+        }
     }
 
     private void BuildTray()
     {
+        menu = BuildMenu();
+        menu.Opening += (_, _) => SyncMenu();
         tray = new NotifyIcon
         {
             Icon = TrayArt.Icon(),
             Text = "Clawdmeter",
             Visible = true,
+            ContextMenuStrip = menu,
         };
-        tray.MouseClick += (_, args) =>
+        // The notification area shows the menu on right click by itself.
+        tray.MouseClick += (_, click) =>
         {
-            if (args.Button == MouseButtons.Left) TogglePanel();
-            else ShowMenu();
+            if (click.Button == MouseButtons.Left) TogglePanel();
         };
-        tray.ContextMenuStrip = BuildMenu();
     }
 
     private ContextMenuStrip BuildMenu()
     {
         var settings = Settings.Current;
-        var menu = new ContextMenuStrip { ShowImageMargin = false };
+        var strip = new ContextMenuStrip { ShowImageMargin = false };
 
-        menu.Items.Add(Check("Show the panel", settings.ShowPanel, value =>
+        showPanelItem = Toggle("Show the panel", value =>
         {
             settings.ShowPanel = value;
             settings.Save();
             TogglePanel(value);
-        }));
-        menu.Items.Add(Check("Keep the panel on top", settings.PanelAlwaysOnTop, value =>
+        });
+        onTopItem = Toggle("Keep the panel on top", value =>
         {
             settings.PanelAlwaysOnTop = value;
             settings.Save();
             if (panel is not null) panel.Topmost = value;
-        }));
-        menu.Items.Add(Check("Clawd walks around", settings.PetWalksAround, value =>
+        });
+        walksItem = Toggle("Clawd walks around", value =>
         {
             settings.PetWalksAround = value;
             settings.Save();
-        }));
-        menu.Items.Add(Check("Tell me when Claude finishes", settings.NotifyWhenClaudeFinishes, value =>
+        });
+        notifyItem = Toggle("Tell me when Claude finishes", value =>
         {
             settings.NotifyWhenClaudeFinishes = value;
             settings.Save();
-        }));
-        menu.Items.Add(new ToolStripSeparator());
+        });
+        strip.Items.Add(showPanelItem);
+        strip.Items.Add(onTopItem);
+        strip.Items.Add(walksItem);
+        strip.Items.Add(notifyItem);
+        strip.Items.Add(new ToolStripSeparator());
 
         var awake = new ToolStripMenuItem("Keep the PC awake");
+        awakeItems.Clear();
         foreach (var mode in new[] { KeepAwakeMode.Off, KeepAwakeMode.WhileClaudeWorks, KeepAwakeMode.Always })
         {
             var title = mode switch
@@ -114,51 +155,67 @@ public partial class App : Application
                 KeepAwakeMode.Always => "Always",
                 _ => "Off",
             };
-            awake.DropDownItems.Add(Check(title, settings.KeepAwake == mode, _ =>
+            var picked = mode;
+            var item = new ToolStripMenuItem(title);
+            item.Click += (_, _) =>
             {
-                settings.KeepAwake = mode;
+                settings.KeepAwake = picked;
                 settings.Save();
-                RefreshMenu();
-            }));
+                SyncMenu();
+            };
+            awakeItems.Add((picked, item));
+            awake.DropDownItems.Add(item);
         }
         awake.DropDownItems.Add(new ToolStripSeparator());
-        awake.DropDownItems.Add(Check("Keep the screen on too", settings.KeepDisplayOn, value =>
+        displayItem = Toggle("Keep the screen on too", value =>
         {
             settings.KeepDisplayOn = value;
             settings.Save();
-        }));
-        menu.Items.Add(awake);
+        });
+        awake.DropDownItems.Add(displayItem);
+        strip.Items.Add(awake);
 
-        menu.Items.Add(Check("Open at login", StartupItem.IsEnabled, value =>
+        startupItem = Toggle("Open at login", value =>
         {
             StartupItem.SetEnabled(value);
             settings.RunAtStartup = value;
             settings.Save();
-        }));
-        menu.Items.Add(Check("Update automatically", settings.UpdateAutomatically, value =>
+        });
+        autoUpdateItem = Toggle("Update automatically", value =>
         {
             settings.UpdateAutomatically = value;
             settings.Save();
-        }));
-        menu.Items.Add(new ToolStripSeparator());
-        menu.Items.Add(Item("Check for updates", async () => await CheckForUpdates().ConfigureAwait(false)));
-        menu.Items.Add(Item("Refresh now", () => _ = store?.Refresh()));
-        menu.Items.Add(Item("Quit Clawdmeter", Quit));
-        return menu;
+        });
+        strip.Items.Add(startupItem);
+        strip.Items.Add(autoUpdateItem);
+        strip.Items.Add(new ToolStripSeparator());
+        strip.Items.Add(Item("Check for updates", () => _ = CheckForUpdates()));
+        strip.Items.Add(Item("Refresh now", () => _ = store?.Refresh()));
+        strip.Items.Add(Item("Quit Clawdmeter", Quit));
+        return strip;
     }
 
-    private void RefreshMenu()
+    /// The menu keeps the same items for the life of the app, only the ticks move.
+    private void SyncMenu()
     {
-        if (tray is null) return;
-        var old = tray.ContextMenuStrip;
-        tray.ContextMenuStrip = BuildMenu();
-        old?.Dispose();
+        var settings = Settings.Current;
+        if (showPanelItem is not null) showPanelItem.Checked = panel?.IsVisible ?? settings.ShowPanel;
+        if (onTopItem is not null) onTopItem.Checked = settings.PanelAlwaysOnTop;
+        if (walksItem is not null) walksItem.Checked = settings.PetWalksAround;
+        if (notifyItem is not null) notifyItem.Checked = settings.NotifyWhenClaudeFinishes;
+        if (displayItem is not null) displayItem.Checked = settings.KeepDisplayOn;
+        if (startupItem is not null) startupItem.Checked = StartupItem.IsEnabled;
+        if (autoUpdateItem is not null) autoUpdateItem.Checked = settings.UpdateAutomatically;
+        foreach (var (mode, item) in awakeItems)
+        {
+            item.Checked = settings.KeepAwake == mode;
+        }
     }
 
-    private static ToolStripMenuItem Check(string title, bool state, Action<bool> change)
+    private static ToolStripMenuItem Toggle(string title, Action<bool> change)
     {
-        var item = new ToolStripMenuItem(title) { Checked = state, CheckOnClick = true };
-        item.CheckedChanged += (_, _) => change(item.Checked);
+        var item = new ToolStripMenuItem(title);
+        item.Click += (_, _) => change(!item.Checked);
         return item;
     }
 
@@ -171,8 +228,8 @@ public partial class App : Application
 
     private void ShowMenu()
     {
-        RefreshMenu();
-        tray?.ContextMenuStrip?.Show(Control.MousePosition);
+        SyncMenu();
+        menu?.Show(Control.MousePosition);
     }
 
     private void TogglePanel(bool? force = null)
@@ -194,7 +251,16 @@ public partial class App : Application
     private async Task CheckForUpdates()
     {
         if (updater is null) return;
-        var info = await updater.Check(CancellationToken.None).ConfigureAwait(false);
+        UpdateInfo? info = null;
+        try
+        {
+            info = await updater.Check(CancellationToken.None).ConfigureAwait(false);
+        }
+        catch (Exception exception)
+        {
+            Log(exception);
+        }
+
         await Dispatcher.InvokeAsync(() =>
         {
             if (info is null)
@@ -202,23 +268,58 @@ public partial class App : Application
                 System.Windows.MessageBox.Show("Clawdmeter is up to date.", "Clawdmeter");
                 return;
             }
-            OfferUpdate(info, quiet: false);
+            OfferUpdate(info);
         });
     }
 
-    private void OfferUpdate(UpdateInfo info, bool quiet)
+    private void OfferUpdate(UpdateInfo info)
     {
-        var answer = System.Windows.MessageBox.Show(
-            $"Clawdmeter {info.Version} is ready. Install it now?",
-            "Clawdmeter",
-            MessageBoxButton.YesNo);
-        if (answer != MessageBoxResult.Yes) return;
-        _ = updater?.Install(info, CancellationToken.None);
+        if (updatePromptOpen) return;
+        updatePromptOpen = true;
+        try
+        {
+            var answer = System.Windows.MessageBox.Show(
+                $"Clawdmeter {info.Version} is ready. Install it now?",
+                "Clawdmeter",
+                MessageBoxButton.YesNo);
+            if (answer != MessageBoxResult.Yes) return;
+            _ = updater?.Install(info, CancellationToken.None);
+        }
+        finally
+        {
+            updatePromptOpen = false;
+        }
+    }
+
+    private void OnDispatcherError(object sender, DispatcherUnhandledExceptionEventArgs args)
+    {
+        // A wobble in the pet or the panel should never take the whole app down.
+        Log(args.Exception);
+        args.Handled = true;
+    }
+
+    private static void Log(Exception? exception)
+    {
+        if (exception is null) return;
+        try
+        {
+            var path = System.IO.Path.Combine(Settings.Folder, "last-error.txt");
+            System.IO.Directory.CreateDirectory(Settings.Folder);
+            System.IO.File.WriteAllText(path, $"{DateTimeOffset.Now:u}\n{exception}");
+        }
+        catch (Exception writing) when (writing is System.IO.IOException or UnauthorizedAccessException)
+        {
+        }
     }
 
     private void Quit()
     {
-        tray?.Dispose();
+        if (tray is not null)
+        {
+            tray.Visible = false;
+            tray.Dispose();
+            tray = null;
+        }
         roaming?.Dispose();
         keepAwake?.Dispose();
         alert?.Dispose();
@@ -232,6 +333,9 @@ public partial class App : Application
 /// The little Clawd head that sits in the notification area.
 internal static class TrayArt
 {
+    [DllImport("user32.dll", SetLastError = true)]
+    private static extern bool DestroyIcon(nint handle);
+
     public static Icon Icon()
     {
         using var bitmap = new Bitmap(32, 32);
@@ -240,7 +344,7 @@ internal static class TrayArt
             graphics.SmoothingMode = System.Drawing.Drawing2D.SmoothingMode.None;
             using var body = new SolidBrush(Color.FromArgb(215, 119, 87));
             using var eyes = new SolidBrush(Color.FromArgb(20, 16, 14));
-            var unit = 4;
+            const int unit = 4;
             var cells = new (int X, int Y, int W, int H)[]
             {
                 (1, 2, 6, 1), (0, 3, 8, 4), (1, 7, 6, 1),
@@ -252,6 +356,16 @@ internal static class TrayArt
             graphics.FillRectangle(eyes, 2 * unit, 4 * unit, unit, unit);
             graphics.FillRectangle(eyes, 5 * unit, 4 * unit, unit, unit);
         }
-        return System.Drawing.Icon.FromHandle(bitmap.GetHicon());
+
+        var handle = bitmap.GetHicon();
+        try
+        {
+            using var shared = System.Drawing.Icon.FromHandle(handle);
+            return (Icon)shared.Clone();
+        }
+        finally
+        {
+            DestroyIcon(handle);
+        }
     }
 }

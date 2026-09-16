@@ -42,6 +42,9 @@ public static class ScreenSurfaces
         var top = work.Top + 4;
         var windows = TopLevelWindows(scale, ignoreProcess, ignoreWindows);
         var inFront = new List<Rect>(windows.Count);
+        // These two are swapped back and forth so trimming a top edge costs no new lists.
+        var segments = new List<(double From, double To)>(8);
+        var kept = new List<(double From, double To)>(8);
         foreach (var (id, frame) in windows)
         {
             var visible = frame;
@@ -58,14 +61,14 @@ public static class ScreenSurfaces
             }
 
             // Keep only the parts of the top edge that no window in front is covering.
-            var segments = new List<(double From, double To)>
-            {
-                (Math.Max(frame.Left, screen.Left), Math.Min(frame.Right, screen.Right)),
-            };
+            segments.Clear();
+            segments.Add((Math.Max(frame.Left, screen.Left), Math.Min(frame.Right, screen.Right)));
             foreach (var cover in inFront)
             {
                 if (cover.Top > frame.Top + 2 || cover.Bottom < frame.Top) continue;
-                segments = segments.SelectMany(segment => Subtract(segment, cover.Left, cover.Right)).ToList();
+                Subtract(segments, cover.Left, cover.Right, kept);
+                (segments, kept) = (kept, segments);
+                if (segments.Count == 0) break;
             }
             foreach (var segment in segments)
             {
@@ -190,15 +193,23 @@ public static class ScreenSurfaces
         return found;
     }
 
-    private static IEnumerable<(double From, double To)> Subtract((double From, double To) span, double from, double to)
+    private static void Subtract(
+        List<(double From, double To)> spans,
+        double from,
+        double to,
+        List<(double From, double To)> into)
     {
-        if (to <= span.From || from >= span.To)
+        into.Clear();
+        foreach (var span in spans)
         {
-            yield return span;
-            yield break;
+            if (to <= span.From || from >= span.To)
+            {
+                into.Add(span);
+                continue;
+            }
+            if (from > span.From) into.Add((span.From, from));
+            if (to < span.To) into.Add((to, span.To));
         }
-        if (from > span.From) yield return (span.From, from);
-        if (to < span.To) yield return (to, span.To);
     }
 
     private static Rect ToRect(NativeRect rect, double scale) => new(
