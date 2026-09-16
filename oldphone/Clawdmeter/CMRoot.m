@@ -20,7 +20,9 @@ static NSTimeInterval const CMBuzzGap = 0.8;
     CALayer *_food;
     CMPanel *_panel;
     CMClawd *_clawd;
-    UILabel *_alertMark;
+    UIView *_alertMark;
+    CALayer *_markBar;
+    CALayer *_markDot;
     UILabel *_alertText;
 
     CMUsageClient *_client;
@@ -75,24 +77,30 @@ static NSTimeInterval const CMBuzzGap = 0.8;
     _panel = [[CMPanel alloc] initWithFrame:CGRectZero];
     [self.view addSubview:_panel];
 
-    _clawd = [[CMClawd alloc] initWithFrame:CGRectZero];
-    [self.view addSubview:_clawd];
-
-    _alertMark = [[UILabel alloc] initWithFrame:CGRectZero];
-    _alertMark.text = @"!";
-    _alertMark.textAlignment = NSTextAlignmentCenter;
-    _alertMark.textColor = [CMPalette amber];
-    _alertMark.font = [UIFont boldSystemFontOfSize:120.0f];
+    // The exclamation mark is drawn, not typed, so it matches the squares Clawd is
+    // made of and reads from across a room.
+    _alertMark = [[UIView alloc] initWithFrame:CGRectZero];
+    _alertMark.userInteractionEnabled = NO;
     _alertMark.alpha = 0;
+    _markBar = [CALayer layer];
+    _markBar.backgroundColor = [CMPalette amber].CGColor;
+    _markDot = [CALayer layer];
+    _markDot.backgroundColor = [CMPalette amber].CGColor;
+    [_alertMark.layer addSublayer:_markBar];
+    [_alertMark.layer addSublayer:_markDot];
     [self.view addSubview:_alertMark];
 
     _alertText = [[UILabel alloc] initWithFrame:CGRectZero];
-    _alertText.textAlignment = NSTextAlignmentCenter;
+    _alertText.textAlignment = NSTextAlignmentLeft;
     _alertText.textColor = [CMPalette paper];
-    _alertText.font = [UIFont systemFontOfSize:13.0f];
+    _alertText.font = [UIFont systemFontOfSize:15.0f];
     _alertText.numberOfLines = 2;
     _alertText.alpha = 0;
     [self.view addSubview:_alertText];
+
+    // Clawd goes on last so he walks in front of the waiting mark.
+    _clawd = [[CMClawd alloc] initWithFrame:CGRectZero];
+    [self.view addSubview:_clawd];
 
     [self addGestures];
 
@@ -172,18 +180,19 @@ static NSTimeInterval const CMBuzzGap = 0.8;
     _sky.frame = bounds;
 
     // Clawd gets the bottom strip, the numbers get the rest.
-    CGFloat pixel = (width >= height) ? 3.0f : 2.6f;
+    CGFloat pixel = (width >= height) ? 4.4f : 3.8f;
     CGSize clawdSize = [CMClawd sizeForPixel:pixel];
-    CGFloat strip = clawdSize.height + 22.0f;
-    CGFloat groundY = height - 14.0f;
+    CGFloat strip = clawdSize.height + 34.0f;
+    CGFloat groundY = height - 34.0f;
 
     _panel.frame = CGRectMake(0, 0, width, MAX(60.0f, height - strip));
     _ground.frame = CGRectMake(0, groundY, width, 1.0f);
 
     _clawd.pixel = pixel;
     _clawd.groundY = groundY;
-    _clawd.roamMin = 26.0f;
-    _clawd.roamMax = MAX(_clawd.roamMin, width - clawdSize.width + 8.0f * pixel - 10.0f);
+    // He uses the whole width: his body stays on screen at one end, his prop at the other.
+    _clawd.roamMin = 8.0f * pixel + 6.0f;
+    _clawd.roamMax = MAX(_clawd.roamMin, width - clawdSize.width + 8.0f * pixel - 6.0f);
     if (_clawd.footX < _clawd.roamMin || _clawd.footX > _clawd.roamMax) {
         [_clawd standAtX:(_clawd.roamMin + _clawd.roamMax) * 0.5f];
     } else {
@@ -196,10 +205,28 @@ static NSTimeInterval const CMBuzzGap = 0.8;
     }
     [CATransaction commit];
 
-    CGFloat markHeight = MIN(160.0f, height * 0.55f);
-    _alertMark.font = [UIFont boldSystemFontOfSize:markHeight * 0.72f];
-    _alertMark.frame = CGRectMake(0, height * 0.10f, width, markHeight);
-    _alertText.frame = CGRectMake(20.0f, CGRectGetMaxY(_alertMark.frame) - 6.0f, width - 40.0f, 34.0f);
+    // The mark and its line stand in the free band above the ground, next to Clawd,
+    // so nothing has to be hidden behind them.
+    CGFloat bandTop = MIN([_panel contentBottom] + 12.0f, groundY - 44.0f);
+    CGFloat markHigh = MIN(96.0f, groundY - bandTop - 2.0f);
+    if (markHigh < 40.0f) markHigh = 40.0f;
+
+    CGFloat thick = roundf(markHigh * 0.17f);
+    CGFloat gap = roundf(markHigh * 0.12f);
+    CGFloat stem = markHigh - thick - gap;
+    CGFloat markX = 26.0f;
+
+    _alertMark.frame = CGRectMake(markX, groundY - markHigh, thick, markHigh);
+    [CATransaction begin];
+    [CATransaction setDisableActions:YES];
+    _markBar.frame = CGRectMake(0, 0, thick, stem);
+    _markDot.frame = CGRectMake(0, stem + gap, thick, thick);
+    [CATransaction commit];
+
+    // The line sits level with the top of the mark, clear of Clawd walking underneath.
+    CGFloat textX = markX + thick + 16.0f;
+    _alertText.frame = CGRectMake(textX, groundY - markHigh - 3.0f,
+                                  MAX(60.0f, width - textX - 16.0f), 30.0f);
 }
 
 #pragma mark - The clock
@@ -255,6 +282,9 @@ static NSTimeInterval const CMBuzzGap = 0.8;
         _sinceSave = 0;
         [pet save];
     }
+
+    // He keeps waving for as long as the mark is up.
+    if (_alerting && !_clawd.waving) [_clawd wave];
 
     [self stepBehaviour:dt];
     [_clawd tick:dt];
@@ -319,7 +349,7 @@ static NSTimeInterval const CMBuzzGap = 0.8;
     if (nowCelebrating && !_celebrating) [_clawd wave];
     _celebrating = nowCelebrating;
 
-    _clawd.activity = usage.activity;
+    if (!_alerting) _clawd.activity = usage.activity;
 
     BOOL first = !_sawAnswer;
     _sawAnswer = YES;
@@ -364,13 +394,14 @@ static NSTimeInterval const CMBuzzGap = 0.8;
     _quietFor = 0;
     _alertText.text = text.length > 0 ? text : @"Claude is waiting on you";
     [_clawd wakeUp];
+    _clawd.activity = CMActivityIdle;   // hands free while he waves
     [_clawd wave];
     [self buzzOnce];
 
     [UIView animateWithDuration:0.22 animations:^{
         _alertMark.alpha = 1.0f;
         _alertText.alpha = 1.0f;
-        _panel.alpha = 0.25f;
+        _panel.alpha = 0.6f;
     }];
 }
 
@@ -378,6 +409,7 @@ static NSTimeInterval const CMBuzzGap = 0.8;
 {
     if (!_alerting) return;
     _alerting = NO;
+    if (_usage != nil && !_offline) _clawd.activity = _usage.activity;
     [UIView animateWithDuration:0.22 animations:^{
         _alertMark.alpha = 0;
         _alertText.alpha = 0;

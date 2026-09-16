@@ -91,3 +91,7 @@ phone plugged in.
   instead of throwing them away.
 - The Xcode that ships today cannot build for iOS 9 on its own, which is why `build.sh`
   fetches the old SDK from the theos mirror.
+- `Tools/shots.sh` draws every screen to a PNG at 480 by 320 points, on the Mac, for
+  checking the layout without a phone in hand. It builds the same sources for Mac
+  Catalyst and is never part of the phone bundle: `build.sh` compiles `Clawdmeter/*.m`
+  and nothing else.

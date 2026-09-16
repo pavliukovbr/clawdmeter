@@ -25,6 +25,9 @@
 /// Where his feet are now, in superview coordinates.
 @property (nonatomic, readonly) CGFloat footX;
 
+/// Still in the middle of a wave.
+@property (nonatomic, readonly) BOOL waving;
+
 /// The size this view wants for a given square side.
 + (CGSize)sizeForPixel:(CGFloat)pixel;
 

@@ -78,7 +78,6 @@
 @interface CMPanel ()
 {
     UILabel *_plan;
-    UILabel *_title;
     UILabel *_value;
     UILabel *_reset;
     UILabel *_detail;
@@ -96,6 +95,7 @@
 
     BOOL _hasSecond;
     BOOL _waiting;
+    CGFloat _contentBottom;
 }
 @end
 
@@ -109,7 +109,6 @@
         self.userInteractionEnabled = NO;
 
         _plan = [self labelWithSize:10 bold:YES color:[CMPalette faint]];
-        _title = [self labelWithSize:12 bold:NO color:[CMPalette faint]];
         _value = [self labelWithSize:58 bold:YES color:[CMPalette clayLight]];
         _reset = [self labelWithSize:12 bold:NO color:[CMPalette faint]];
         _detail = [self labelWithSize:11 bold:NO color:[CMPalette faint]];
@@ -159,51 +158,78 @@
     CGFloat height = self.bounds.size.height;
     if (width <= 0 || height <= 0) return;
 
-    CGFloat margin = 14.0f;
+    CGFloat margin = 16.0f;
     BOOL wide = (width >= height);
 
-    CGFloat leftWidth = wide ? floorf((width - margin * 3.0f) * 0.44f) : (width - margin * 2.0f);
-    CGFloat rightX = wide ? (margin * 2.0f + leftWidth) : margin;
-    CGFloat rightWidth = wide ? (width - rightX - margin) : (width - margin * 2.0f);
+    CGFloat valueSize = wide ? 76.0f : 64.0f;
+    CGFloat valueHigh = ceilf(valueSize * 1.08f);
+    _value.font = [UIFont boldSystemFontOfSize:valueSize];
 
-    // Left: which limit, how much of it is gone, when it comes back.
-    CGFloat y = margin * 0.6f;
-    _plan.frame = CGRectMake(margin, y, leftWidth, 12);
-    y += 14;
-    _title.frame = CGRectMake(margin, y, leftWidth, 15);
-    y += 17;
+    CGFloat barHigh = 13.0f;
+    CGFloat secondHigh = 9.0f;
 
-    CGFloat valueHeight = wide ? 62.0f : 54.0f;
-    _value.font = [UIFont boldSystemFontOfSize:wide ? 58.0f : 50.0f];
-    _value.frame = CGRectMake(margin - 2.0f, y, leftWidth, valueHeight);
-    y += valueHeight + 2.0f;
+    // The block sits near the top with room to breathe, and what is left underneath is
+    // where Clawd walks and where the waiting mark goes.
+    CGFloat leftX = margin;
+    CGFloat rightX = margin;
+    CGFloat leftWidth = width - margin * 2.0f;
+    CGFloat rightWidth = leftWidth;
+    CGFloat top = wide ? 22.0f : 26.0f;
+    CGFloat barY = top;
 
-    _reset.frame = CGRectMake(margin, y, leftWidth, 15);
-    y += 16;
-    _detail.frame = CGRectMake(margin, y, leftWidth, 14);
+    CGFloat leftHigh = 13 + 5 + valueHigh + 6 + 17 + 16;
 
-    // Right: the bars and the day total.
-    CGFloat barY = wide ? (margin * 1.4f) : (y + 24.0f);
-    _barTitle.frame = CGRectMake(rightX, barY, rightWidth * 0.62f, 14);
-    _barValue.frame = CGRectMake(rightX + rightWidth * 0.62f, barY, rightWidth * 0.38f, 14);
-    barY += 17;
-    _bar.frame = CGRectMake(rightX, barY, rightWidth, 11);
-    barY += 17;
+    if (wide) {
+        leftWidth = floorf((width - margin * 3.0f) * 0.44f);
+        rightX = margin * 2.0f + leftWidth;
+        rightWidth = width - rightX - margin;
+    }
+
+    // Left: the plan, the number itself, when it comes back, one line of detail.
+    CGFloat y = top;
+    _plan.frame = CGRectMake(leftX, y, leftWidth, 13);
+    y += 18;
+    _value.frame = CGRectMake(leftX - 3.0f, y, leftWidth, valueHigh);
+    y += valueHigh + 6.0f;
+    _reset.frame = CGRectMake(leftX, y, leftWidth, 17);
+    y += 18;
+    _detail.frame = CGRectMake(leftX, y, leftWidth, 16);
+    CGFloat leftBottom = y + 16;
+
+    // Right: every limit named once, with its bar.
+    if (!wide) barY = top + leftHigh + 26.0f;
+
+    _barTitle.frame = CGRectMake(rightX, barY, rightWidth * 0.62f, 16);
+    _barValue.frame = CGRectMake(rightX + rightWidth * 0.62f, barY, rightWidth * 0.38f, 16);
+    barY += 20;
+    _bar.frame = CGRectMake(rightX, barY, rightWidth, barHigh);
+    barY += barHigh + 18.0f;
 
     if (_hasSecond) {
-        _secondTitle.frame = CGRectMake(rightX, barY, rightWidth * 0.62f, 13);
-        _secondValue.frame = CGRectMake(rightX + rightWidth * 0.62f, barY, rightWidth * 0.38f, 13);
-        barY += 15;
-        _secondBar.frame = CGRectMake(rightX, barY, rightWidth, 7);
-        barY += 14;
+        _secondTitle.frame = CGRectMake(rightX, barY, rightWidth * 0.62f, 15);
+        _secondValue.frame = CGRectMake(rightX + rightWidth * 0.62f, barY, rightWidth * 0.38f, 15);
+        barY += 19;
+        _secondBar.frame = CGRectMake(rightX, barY, rightWidth, secondHigh);
+        barY += secondHigh + 18.0f;
     } else {
         _secondTitle.frame = CGRectZero;
         _secondValue.frame = CGRectZero;
         _secondBar.frame = CGRectZero;
     }
 
-    _today.frame = CGRectMake(rightX, barY + 2.0f, rightWidth, 14);
-    _quiet.frame = CGRectMake(rightX, barY + 18.0f, rightWidth, 14);
+    // The day total drops to the same line the left column ends on, so the two columns
+    // finish together instead of leaving a step.
+    CGFloat todayY = wide ? MAX(barY, leftBottom - 16.0f) : barY;
+    _today.frame = CGRectMake(rightX, todayY, rightWidth, 16);
+    _quiet.frame = CGRectMake(rightX, todayY + 20.0f, rightWidth, 16);
+
+    _contentBottom = MAX(leftBottom, todayY + 20.0f + 16.0f);
+}
+
+/// How far down the last line reaches, so the screen can use what is left below it.
+- (CGFloat)contentBottom
+{
+    return _contentBottom;
 }
 
 #pragma mark - Filling in
@@ -216,7 +242,6 @@
     UIColor *tint = [CMPalette tintForSeverity:usage.severity];
 
     _plan.text = [usage.plan uppercaseString];
-    _title.text = usage.title.length > 0 ? usage.title : @"usage";
     _value.text = usage.value.length > 0 ? usage.value : @"...";
     _value.textColor = tint;
 
@@ -224,8 +249,9 @@
     _reset.text = reset.length > 0 ? [NSString stringWithFormat:@"resets in %@", reset] : @"";
     _detail.text = usage.detail.length > 0 ? usage.detail : usage.note;
 
-    _barTitle.text = usage.title.length > 0 ? usage.title : @"session";
-    _barValue.text = usage.value;
+    // The big number already says how much of this one is gone, so the bar only names it.
+    _barTitle.text = usage.title.length > 0 ? usage.title : @"limit";
+    _barValue.text = @"";
     _bar.severity = usage.severity;
     _bar.fraction = usage.fraction;
 
@@ -272,11 +298,10 @@
     _waiting = YES;
     _hasSecond = NO;
     _plan.text = @"";
-    _title.text = text.length > 0 ? text : @"looking for the PC";
     _value.text = @"...";
     _value.textColor = [CMPalette faint];
     _value.alpha = 1.0f;
-    _reset.text = @"";
+    _reset.text = text.length > 0 ? text : @"looking for the PC";
     _detail.text = @"";
     _barTitle.text = @"";
     _barValue.text = @"";

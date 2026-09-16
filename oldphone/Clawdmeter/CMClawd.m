@@ -166,6 +166,7 @@ typedef NS_ENUM(NSInteger, CMAction) {
     }
 
     [CATransaction commit];
+    [self redraw];
 }
 
 - (void)setPixel:(CGFloat)pixel
@@ -208,9 +209,14 @@ typedef NS_ENUM(NSInteger, CMAction) {
             break;
         }
         case CMActivityReading: {
-            [self addProp:[self squareAtX:16.4f y:6.4f wide:2.6f high:3.6f color:paper]];
-            [self addProp:[self squareAtX:19.2f y:6.4f wide:2.6f high:3.6f color:paper]];
-            [self addProp:[self squareAtX:18.9f y:6.2f wide:0.5f high:3.8f color:deep]];
+            // An open book: two pages, the spine between them, a couple of lines of text.
+            [self addProp:[self squareAtX:15.8f y:6.4f wide:3.0f high:3.6f color:paper]];
+            [self addProp:[self squareAtX:19.2f y:6.4f wide:2.8f high:3.6f color:paper]];
+            [self addProp:[self squareAtX:18.8f y:6.0f wide:0.5f high:4.0f color:deep]];
+            [self addProp:[self squareAtX:16.2f y:7.2f wide:2.2f high:0.35f color:deep]];
+            [self addProp:[self squareAtX:16.2f y:8.1f wide:1.6f high:0.35f color:deep]];
+            [self addProp:[self squareAtX:19.6f y:7.2f wide:2.0f high:0.35f color:deep]];
+            [self addProp:[self squareAtX:19.6f y:8.1f wide:1.4f high:0.35f color:deep]];
             break;
         }
         case CMActivitySearching: {
@@ -227,8 +233,8 @@ typedef NS_ENUM(NSInteger, CMAction) {
             // Hard hat on his head, hammer standing next to him.
             [self addProp:[self squareAtX:2.5f y:-0.8f wide:11.0f high:0.8f color:[CMPalette amberDeep]]];
             [self addProp:[self squareAtX:5.0f y:-2.2f wide:6.0f high:1.6f color:amber]];
-            [self addProp:[self squareAtX:18.0f y:6.0f wide:1.0f high:4.0f color:deep]];
-            [self addProp:[self squareAtX:16.6f y:5.0f wide:3.6f high:1.4f color:steel]];
+            [self addProp:[self squareAtX:18.8f y:5.4f wide:1.2f high:4.6f color:deep]];
+            [self addProp:[self squareAtX:17.4f y:4.0f wide:4.2f high:1.8f color:steel]];
             break;
         }
         case CMActivityThinking: {
@@ -340,6 +346,11 @@ typedef NS_ENUM(NSInteger, CMAction) {
     return _footX;
 }
 
+- (BOOL)waving
+{
+    return _waveLeft > 0;
+}
+
 - (BOOL)containsPoint:(CGPoint)point inView:(UIView *)view
 {
     CGPoint local = [self convertPoint:point fromView:view];
@@ -385,7 +396,7 @@ typedef NS_ENUM(NSInteger, CMAction) {
     [self wakeUp];
     if (_heart == nil) {
         _heart = [CALayer layer];
-        _heart.name = @"6.0 -2.6 4.0 3.4";
+        _heart.name = @"6.6 -4.4 5.0 4.2";
 
         // Seven columns by six rows of little squares, the shape of a heart.
         CGFloat shape[7][4] = {
@@ -464,6 +475,13 @@ typedef NS_ENUM(NSInteger, CMAction) {
     if (_munchLeft > 0) _munchLeft -= dt;
     if (_squash > 0) _squash = MAX(0.0f, _squash - dt * 3.2f);
 
+    [self redraw];
+}
+
+/// Put every part where the current pose says it goes. A layout pass parks the parts on
+/// their resting marks, so it ends by calling this too and nothing jumps.
+- (void)redraw
+{
     [CATransaction begin];
     [CATransaction setDisableActions:YES];
     [self applyPosition];
@@ -471,7 +489,7 @@ typedef NS_ENUM(NSInteger, CMAction) {
     [self drawLegs];
     [self drawArms];
     [self drawEyes];
-    [self drawExtras:dt];
+    [self drawExtras];
     [CATransaction commit];
 }
 
@@ -588,8 +606,8 @@ typedef NS_ENUM(NSInteger, CMAction) {
 
     CGFloat rightY = restY - sway;
     if (_waveLeft > 0) {
-        CGFloat wave = sinf(_waveLeft * 14.0f);
-        rightY = restY - px * (2.2f + 0.8f * wave);
+        CGFloat wave = sinf(_waveLeft * 13.0f);
+        rightY = restY - px * (3.0f + 1.0f * wave);   // high enough to read as a wave
     }
     _armRight.bounds = CGRectMake(0, 0, 2.0f * px, 2.0f * px);
     _armRight.position = CGPointMake(15.0f * px, rightY);
@@ -622,9 +640,8 @@ typedef NS_ENUM(NSInteger, CMAction) {
     _eyeRight.position = CGPointMake(11.5f * px, middle + lids);
 }
 
-- (void)drawExtras:(CGFloat)dt
+- (void)drawExtras
 {
-    (void)dt;
     CGFloat px = self.pixel;
 
     // Thinking dots and celebration sparkles take turns lighting up.

@@ -15,6 +15,9 @@
 
 - (void)showUsage:(CMUsage *)usage;
 
+/// How far down the lowest line reaches, so the screen knows what is free below it.
+- (CGFloat)contentBottom;
+
 /// Dim the last good answer and say so, quietly, in a corner.
 - (void)setOffline:(BOOL)offline;
 
