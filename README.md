@@ -5,12 +5,12 @@
 <h1 align="center">Clawdmeter</h1>
 
 <p align="center">
-  Your Claude plan usage on the macOS desktop, with Clawd walking along the meter.<br>
-  A little Clawd under your notch that works whenever Claude does, and on your iPhone too.
+  Your Claude plan usage on the desktop, with Clawd walking along the meter.<br>
+  A little Clawd under your notch that works whenever Claude does, on Windows and on your iPhone too.
 </p>
 
 <p align="center">
-  <a href="https://github.com/pavliukovbr/clawdmeter/releases/latest"><b>Download for Mac</b></a> · <a href="#on-your-iphone"><b>Install on iPhone</b></a> · <a href="#ask-your-claude-to-install-it"><b>Ask your Claude to install it</b></a>
+  <a href="https://github.com/pavliukovbr/clawdmeter/releases/latest"><b>Download for Mac</b></a> · <a href="https://github.com/pavliukovbr/clawdmeter/releases/latest"><b>Download for Windows</b></a> · <a href="#on-your-iphone"><b>Install on iPhone</b></a> · <a href="#ask-your-claude-to-install-it"><b>Ask your Claude to install it</b></a>
 </p>
 
 ## Desktop widget
@@ -87,6 +87,19 @@ The Dynamic Island follows your session while it is on. It updates whenever the 
 
 To put it on your iPhone, follow [the iPhone steps](#on-your-iphone) or [ask your Claude to install it](#ask-your-claude-to-install-it).
 
+## Windows
+
+Clawdmeter runs on Windows 10 and 11 as well, reading the same Claude Code sign in from your PC.
+
+- A small panel on the desktop with your session, weekly and model limits, the same meters as the Mac widget
+- An icon in the notification area: click it to show or hide the panel, right click it for the settings
+- Clawd walks along the top edges of your windows, rides them when you drag them and falls when they close
+- He lives on the taskbar near the clock instead of a notch, and climbs back there when Claude gets to work
+- He pretends to be a folder, an extra window button, or the logo on the Start button
+- Keep the PC awake while Claude works, open at login, and the same alert when Claude finishes
+
+Drag the panel anywhere, it stays where you leave it. Everything can be turned off from the menu.
+
 ## Works with every plan
 
 Clawdmeter detects your plan and adapts on its own.
@@ -111,6 +124,15 @@ Clawdmeter detects your plan and adapts on its own.
 4. Right click the desktop, choose **Edit Widgets**, search for Clawdmeter and drag the size you like.
 
 You need macOS 14 Sonoma or later, on Apple silicon or Intel, and Claude Code signed in on the same Mac. From then on Clawdmeter updates itself.
+
+### On your PC
+
+1. Download **Clawdmeter-Windows.zip** from the [latest release](https://github.com/pavliukovbr/clawdmeter/releases/latest).
+2. Unzip it anywhere you like and run **Clawdmeter.exe**. Nothing to install, the app carries what it needs.
+3. Windows warns about an unknown publisher the first time, since the app is not signed yet. Click **More info** and **Run anyway**.
+4. Turn on **Open at login** from the icon in the notification area to have it start with the PC.
+
+You need Windows 10 or 11 on 64 bit, and Claude Code signed in on the same PC. From then on Clawdmeter updates itself.
 
 ### On your iPhone
 
@@ -171,18 +193,27 @@ cp -R build/Build/Products/Release/Clawdmeter.app /Applications/
 
 Or open `Clawdmeter.xcodeproj` and press Run. To make the downloadable files for a release, run `scripts/release.sh`.
 
+For Windows you need the [.NET 9 SDK](https://dotnet.microsoft.com/download), and it builds from Windows, macOS or Linux:
+
+```bash
+dotnet publish windows/Clawdmeter/Clawdmeter.csproj -c Release -r win-x64 --self-contained true -p:PublishSingleFile=true
+```
+
+To make the downloadable file for a release, run `scripts/release-windows.sh`.
+
 The project is organized in a few folders:
 
 - `App` is the menu bar app: reading usage, the notch scene, keep awake, updates and sharing with iPhone.
 - `Widget` is the Mac widget extension.
 - `iPhone` and `iPhoneWidget` are the iPhone app, its widgets and the Live Activity, with `PhoneShared` between them.
 - `Shared` has the views, models and the pairing protocol used everywhere.
+- `windows` is the Windows app, written in C# with WPF and no dependencies.
 
 ## How it works
 
 Clawdmeter runs quietly in the menu bar. Every 5 minutes, after waking from sleep, and whenever you click Clawd, it:
 
-1. Reads the sign in Claude Code already keeps in your login keychain.
+1. Reads the sign in Claude Code already keeps in your login keychain, or in `.claude\.credentials.json` on Windows.
 2. Asks Anthropic for your current limits, the same numbers you see with `/usage`.
 3. Adds up tokens from the Claude Code session logs in `~/.claude/projects`.
 4. Saves a small summary for the widget and asks it to redraw.
@@ -197,7 +228,7 @@ Clawdmeter keeps everything on your own devices.
 - **Session logs** are read on your Mac. Only token counts, tool names, timestamps and the project folder name are looked at. Prompts are only checked for a couple of easter egg words, and nothing from them is kept.
 - **Your windows** are only measured, so Clawd knows where he can stand. What is inside them is never looked at, and no screen recording permission is needed.
 - **What you do** is limited to which app is in front and how long ago a key was pressed. Which keys you press is never known.
-- **What is saved** is one small file in `~/Library/Application Support/Clawdmeter` with percentages, reset times and daily totals, readable only by you.
+- **What is saved** is one small file in `~/Library/Application Support/Clawdmeter`, or in `%APPDATA%\Clawdmeter` on Windows, with percentages, reset times and daily totals, readable only by you.
 - **Sharing with iPhone** is off until you turn it on. The Mac only answers phones paired with its code, replies are encrypted, and the port closes when you turn it off. Reset the code any time to unpair every phone.
 - **The iPhone** keeps the pairing and the last numbers in its keychain. It never gets your Claude sign in.
 - **Updates** come from the public release list of this repository on GitHub. Nothing about you or your Mac is sent.
@@ -210,7 +241,8 @@ There is no analytics, no tracking and no account.
 - The usage endpoint is the one Claude Code uses internally. It is not a public API and could change.
 - Widgets on a dimmed desktop keep Clawd still, since macOS does not animate them there.
 - Closed the menu bar icon by accident? Open Clawdmeter again and it comes back.
-- Sharing with iPhone listens on port 47847.
+- Sharing with iPhone listens on port 47847, and is a Mac feature for now.
+- The Windows app is not code signed, so SmartScreen warns the first time you run it.
 
 ## License
 
