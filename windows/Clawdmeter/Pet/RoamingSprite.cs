@@ -16,15 +16,21 @@ public sealed class RoamingSprite
 {
     private const double Unit = ClawdArt.RoamUnit;
 
+    private const double HangSeconds = 7;
+
     private readonly Canvas host;
     private readonly Canvas root = new();
     private readonly Canvas flipper = new();
+    private readonly Canvas gear = new();
     private readonly Canvas extras = new();
 
     private readonly RotateTransform tilt = new();
     private readonly TranslateTransform sink = new();
     private readonly ScaleTransform squash = new(1, 1);
     private readonly ScaleTransform flip = new(1, 1);
+    /// Turns him about his paws, which is what makes a hanging Clawd sway.
+    private readonly RotateTransform grip = new();
+    private readonly TranslateTransform gearShift = new();
 
     private RotateTransform lean = new();
     private TranslateTransform bob = new();
@@ -39,10 +45,13 @@ public sealed class RoamingSprite
         this.host = host;
         root.IsHitTestVisible = false;
         flipper.IsHitTestVisible = false;
+        gear.IsHitTestVisible = false;
         extras.IsHitTestVisible = false;
-        root.RenderTransform = new TransformGroup { Children = { tilt, sink } };
+        root.RenderTransform = new TransformGroup { Children = { grip, tilt, sink } };
         flipper.RenderTransform = new TransformGroup { Children = { squash, flip } };
+        gear.RenderTransform = gearShift;
         root.Children.Add(flipper);
+        root.Children.Add(gear);
         root.Children.Add(extras);
 
         pieces = ClawdArt.Build(ClawdLook.Clawd);
@@ -87,11 +96,77 @@ public sealed class RoamingSprite
 
     // MARK: Changing
 
+    /// What he is holding. It sits outside the flipper, so it never comes out mirrored.
+    public ClawdGear Gear { get; private set; } = ClawdGear.None;
+
     public void SetPose(ClawdPose next)
     {
         if (!pieces.HasBody || next == Pose) return;
         Pose = next;
         ApplyPose();
+    }
+
+    /// Puts a gadget in his paws, or takes the last one away.
+    public void ShowGear(ClawdGear next)
+    {
+        if (next == Gear) return;
+        Gear = next;
+        ClearGear();
+
+        var built = pieces.HasBody ? ClawdArt.Gear(next, Unit) : null;
+        if (built is not null)
+        {
+            gear.Children.Add(built.Content);
+            switch (next)
+            {
+                case ClawdGear.Laptop:
+                    Loop(
+                        built.Glow,
+                        UIElement.OpacityProperty,
+                        new[] { 0.55, 1, 0.7, 0.95, 0.55 },
+                        new[] { 0, 0.3, 0.5, 0.8, 1.0 },
+                        3.2);
+                    break;
+
+                case ClawdGear.Book:
+                    Loop(built.Drift, TranslateTransform.YProperty, new[] { 0, 0.3 * Unit, 0 }, Thirds, 1.6);
+                    break;
+
+                case ClawdGear.Glass:
+                    Loop(
+                        built.Drift,
+                        TranslateTransform.XProperty,
+                        new[] { 0, 2.4 * Unit, 0, -2.4 * Unit, 0 },
+                        Quarters,
+                        5.2);
+                    Loop(
+                        built.Drift,
+                        TranslateTransform.YProperty,
+                        new[] { 0, -0.6 * Unit, 0.5 * Unit, -0.6 * Unit, 0 },
+                        Quarters,
+                        5.2);
+                    break;
+
+                case ClawdGear.Tools:
+                    Loop(
+                        built.Swing,
+                        RotateTransform.AngleProperty,
+                        new[] { -55.0, -55, 35, 18, -55 },
+                        new[] { 0, 0.34, 0.48, 0.58, 1.0 },
+                        1.1);
+                    break;
+
+                case ClawdGear.Dots:
+                    for (var index = 0; index < built.Dots.Count; index++)
+                    {
+                        Loop(built.Dots[index], UIElement.OpacityProperty, new[] { 0.25, 1, 0.25 }, Thirds, 1.5, (2 - index) * 0.25);
+                    }
+                    break;
+            }
+        }
+
+        // He and what he carries pull up together, so both cycles start again here.
+        if (Pose == ClawdPose.Hang) HangLift();
     }
 
     /// True while Clawd is halfway through changing his look. It runs out on its own,
@@ -137,6 +212,8 @@ public sealed class RoamingSprite
     {
         generation++;
         morphEnds = 0;
+        Gear = ClawdGear.None;
+        ClearGear();
         squash.BeginAnimation(ScaleTransform.ScaleXProperty, null);
         squash.BeginAnimation(ScaleTransform.ScaleYProperty, null);
         squash.ScaleX = 1;
@@ -275,6 +352,8 @@ public sealed class RoamingSprite
     {
         generation++;
         morphEnds = 0;
+        Gear = ClawdGear.None;
+        ClearGear();
         ClearExtras();
         foreach (UIElement leftover in host.Children)
         {
@@ -289,6 +368,8 @@ public sealed class RoamingSprite
     {
         ClawdMotion.Stop(pieces.Content);
         flipper.Children.Remove(pieces.Content);
+        Gear = ClawdGear.None;
+        ClearGear();
         ClearExtras();
         pieces = ClawdArt.Build(next);
         Look = next;
@@ -306,14 +387,27 @@ public sealed class RoamingSprite
         extras.Children.Clear();
     }
 
+    private void ClearGear()
+    {
+        foreach (UIElement piece in gear.Children)
+        {
+            ClawdMotion.Stop(piece);
+        }
+        gear.Children.Clear();
+        gearShift.BeginAnimation(TranslateTransform.YProperty, null);
+        gearShift.Y = 0;
+    }
+
     private void Install(ClawdPieces next)
     {
         var size = next.Size;
-        foreach (var canvas in new[] { root, flipper, extras })
+        foreach (var canvas in new[] { root, flipper, gear, extras })
         {
             canvas.Width = size.Width;
             canvas.Height = size.Height;
         }
+        grip.CenterX = size.Width / 2;
+        grip.CenterY = 0;
         tilt.CenterX = size.Width / 2;
         tilt.CenterY = size.Height;
         squash.CenterX = size.Width / 2;
@@ -341,6 +435,10 @@ public sealed class RoamingSprite
         bob.Y = 0;
         lean.BeginAnimation(RotateTransform.AngleProperty, null);
         lean.Angle = 0;
+        grip.BeginAnimation(RotateTransform.AngleProperty, null);
+        grip.Angle = 0;
+        gearShift.BeginAnimation(TranslateTransform.YProperty, null);
+        gearShift.Y = 0;
         pieces.LeftArm?.Rest();
         pieces.RightArm?.Rest();
         pieces.LegsA?.Rest();
@@ -386,10 +484,26 @@ public sealed class RoamingSprite
                 AddHeart();
                 break;
 
-            case ClawdPose.Work:
-                Loop(pieces.LeftArm?.Shift, TranslateTransform.YProperty, new[] { 0, -0.9 * u, 0 }, Thirds, 0.28);
-                Loop(pieces.RightArm?.Shift, TranslateTransform.YProperty, new[] { 0, -0.9 * u, 0 }, Thirds, 0.28, 0.5);
+            case ClawdPose.Hang:
+                // His paws hold an edge just above his head, so the body swings under them.
+                Set(pieces.LeftArm, 0.5 * u, -6 * u);
+                Set(pieces.RightArm, -0.5 * u, -6 * u);
+                HangLift();
+                Loop(grip, RotateTransform.AngleProperty, new[] { -5.0, 5, -5 }, Thirds, 3.4);
+                Dangle();
                 Blink();
+                break;
+
+            case ClawdPose.Wave:
+                // One paw keeps hold, the other waves.
+                SetEyes(ClawdEyes.Happy);
+                Set(pieces.LeftArm, 0.5 * u, -6 * u);
+                Set(pieces.RightArm, -0.5 * u, -6 * u);
+                bob.Y = 1.5 * u;
+                gearShift.Y = 1.5 * u;
+                Loop(pieces.RightArm?.Shift, TranslateTransform.XProperty, new[] { -0.2 * u, 1.4 * u, -0.2 * u }, Thirds, 0.34);
+                Loop(grip, RotateTransform.AngleProperty, new[] { 2.0, 8, 2 }, Thirds, 1.4);
+                Dangle();
                 break;
 
             case ClawdPose.Dance:
@@ -408,6 +522,33 @@ public sealed class RoamingSprite
                 Blink();
                 break;
         }
+    }
+
+    /// The odd pull up, driven on his body, his arms and whatever he carries at once,
+    /// so his paws stay on the edge and a hard hat stays on his head.
+    private void HangLift()
+    {
+        const double u = Unit;
+        var lift = new[] { 1.5 * u, 1.5 * u, -0.7 * u, -0.7 * u, 1.5 * u, 1.5 * u };
+        var beat = new[] { 0, 0.62, 0.72, 0.8, 0.9, 1.0 };
+        var arms = new double[lift.Length];
+        for (var index = 0; index < lift.Length; index++)
+        {
+            arms[index] = -4.5 * u - lift[index];
+        }
+        Loop(bob, TranslateTransform.YProperty, lift, beat, HangSeconds);
+        Loop(gearShift, TranslateTransform.YProperty, lift, beat, HangSeconds);
+        Loop(pieces.LeftArm?.Shift, TranslateTransform.YProperty, arms, beat, HangSeconds);
+        Loop(pieces.RightArm?.Shift, TranslateTransform.YProperty, arms, beat, HangSeconds);
+    }
+
+    /// Legs swinging under him, one a little behind the other.
+    private void Dangle()
+    {
+        const double u = Unit;
+        var swing = new[] { -0.5 * u, 0.5 * u, -0.5 * u };
+        Loop(pieces.LegsA?.Shift, TranslateTransform.XProperty, swing, Thirds, 2.6);
+        Loop(pieces.LegsB?.Shift, TranslateTransform.XProperty, swing, Thirds, 2.6, 0.12);
     }
 
     private void Fold()
@@ -534,6 +675,7 @@ public sealed class RoamingSprite
     // MARK: Animation helpers
 
     private static readonly double[] Thirds = { 0, 0.5, 1 };
+    private static readonly double[] Quarters = { 0, 0.25, 0.5, 0.75, 1 };
     private static readonly double[] Ends = { 0, 1 };
 
     private static void Loop(

@@ -18,7 +18,7 @@ namespace Clawdmeter.Pet;
 /// There is only ever one Clawd: while he is out, his spot on the taskbar stays empty.
 public sealed class RoamingController : IDisposable
 {
-    private enum Mode { Away, Falling, Walking, Idle, Jumping, Disguised, Resting, Swinging, Partying }
+    private enum Mode { Away, Falling, Walking, Idle, Jumping, Disguised, Resting, Swinging, Partying, Hanging }
 
     private sealed class Jump
     {
@@ -39,6 +39,14 @@ public sealed class RoamingController : IDisposable
         public Point From;
         public double Start;
         public double Travel;
+    }
+
+    /// Where his paws are while Claude works, and the window edge they are holding.
+    private sealed class Hang
+    {
+        public Point Grip;
+        public int? WindowId;
+        public Rect? Frame;
     }
 
     /// Web slinging: a pendulum from an anchor under the top of the screen, then the next one.
@@ -98,6 +106,8 @@ public sealed class RoamingController : IDisposable
     private Jump? jump;
     private Disguise? disguise;
     private Swing? swing;
+    private Hang? hang;
+    private double hangUntil;
     private bool finishingEgg;
     private bool partyPending;
     private bool goingHome;
@@ -109,7 +119,6 @@ public sealed class RoamingController : IDisposable
     private DateTimeOffset stayHomeUntil = DateTimeOffset.MinValue;
     private DateTimeOffset lastTransition = DateTimeOffset.MinValue;
     private DateTimeOffset easterEggUntil = DateTimeOffset.MinValue;
-    private DateTimeOffset? busySince;
 
     public RoamingController(ClaudeActivityWatcher watcher)
     {
@@ -176,7 +185,6 @@ public sealed class RoamingController : IDisposable
         var now = DateTimeOffset.Now;
         var busy = watcher.IsClaudeWorking(TimeSpan.FromSeconds(30));
         var away = ScreenSurfaces.IdleTime() > TimeSpan.FromMinutes(5);
-        busySince = busy ? busySince ?? now : null;
         if (busy || away) quietSince = now;
 
         var covered = IsFullScreenInFront();
@@ -192,9 +200,11 @@ public sealed class RoamingController : IDisposable
 
         if (mode == Mode.Away)
         {
-            var settled = (now - quietSince).TotalSeconds > 8;
             var rested = now >= stayHomeUntil && (now - lastTransition).TotalSeconds > 10;
-            if (settled && !busy && !away && rested) ComeOut();
+            if (away || !rested) return;
+            // Claude at work brings him out onto an edge rather than onto the floor.
+            if (busy) StartHanging();
+            else if ((now - quietSince).TotalSeconds > 8) ComeOut();
             return;
         }
 
@@ -203,46 +213,28 @@ public sealed class RoamingController : IDisposable
             GoAway(true);
             return;
         }
-        if (busySince is { } since && (now - since).TotalSeconds > 20)
+
+        if (busy)
         {
-            GoAway(true);
+            if (!leaving && mode is Mode.Idle or Mode.Walking) StartHanging();
+            if (mode == Mode.Hanging)
+            {
+                hangUntil = 0;
+                sprite.SetPose(ClawdPose.Hang);
+                sprite.ShowGear(GearFor(watcher.Latest?.Activity));
+            }
             return;
         }
 
-        if (mode is not (Mode.Idle or Mode.Walking or Mode.Resting) || standing is null) return;
-        if (busy && mode != Mode.Resting)
-        {
-            // He stops to watch Claude work before heading home.
-            sprite.SetPose(ClawdPose.Work);
-            mode = Mode.Resting;
-        }
-        else if (!busy && mode == Mode.Resting)
-        {
-            sprite.SetPose(ClawdPose.Stand);
-            mode = Mode.Idle;
-            decideAt = Now + 1;
-        }
+        // The wave at the end of a turn holds him up there a moment longer.
+        if (mode == Mode.Hanging && Now >= hangUntil) LetGo();
     }
 
     /// Climbs up from behind the taskbar and sits down for a moment.
     private void ComeOut()
     {
         if (window is null || sprite is null) return;
-        Scan();
-        lastTransition = DateTimeOffset.Now;
-        leaving = false;
-        goingHome = false;
-        finishingEgg = false;
-        partyPending = false;
-        fallSpeed = 0;
-        driftX = 0;
-        jump = null;
-        disguise = null;
-        swing = null;
-        HideWeb();
-
-        sprite.Reset();
-        sprite.Hidden = false;
+        Emerge();
         position = HomeSpot();
         standing = Floor();
         direction = -1;
@@ -255,6 +247,28 @@ public sealed class RoamingController : IDisposable
         sprite.RiseUp();
     }
 
+    /// Clears out whatever he was in the middle of, ready for him to show himself again.
+    private void Emerge()
+    {
+        if (sprite is null) return;
+        Scan();
+        lastTransition = DateTimeOffset.Now;
+        leaving = false;
+        goingHome = false;
+        finishingEgg = false;
+        partyPending = false;
+        fallSpeed = 0;
+        driftX = 0;
+        jump = null;
+        disguise = null;
+        swing = null;
+        hang = null;
+        HideWeb();
+
+        sprite.Reset();
+        sprite.Hidden = false;
+    }
+
     /// Walks back to the taskbar and slips behind its edge, or puffs away if he is far off.
     private void GoAway(bool animated)
     {
@@ -263,7 +277,9 @@ public sealed class RoamingController : IDisposable
         jump = null;
         disguise = null;
         swing = null;
+        hang = null;
         partyPending = false;
+        sprite.ShowGear(ClawdGear.None);
         HideWeb();
         ClearProps();
 
@@ -299,6 +315,7 @@ public sealed class RoamingController : IDisposable
         goingHome = false;
         walkSpeed = WalkSpeed;
         standing = null;
+        hang = null;
         lastTransition = DateTimeOffset.Now;
         if (sprite is not null) sprite.Hidden = true;
         StopStepping();
@@ -306,8 +323,20 @@ public sealed class RoamingController : IDisposable
 
     private void Celebrate(FinishedTurn turn)
     {
-        if (sprite is null || mode is not (Mode.Idle or Mode.Walking or Mode.Resting)) return;
+        if (sprite is null) return;
         if (DateTimeOffset.Now - turn.Date > TimeSpan.FromSeconds(60)) return;
+
+        if (mode == Mode.Hanging)
+        {
+            // He waves from the edge for a moment before he lets go.
+            sprite.ShowGear(ClawdGear.None);
+            sprite.SetPose(ClawdPose.Wave);
+            sprite.Sparkle();
+            hangUntil = Now + 2.5;
+            return;
+        }
+
+        if (mode is not (Mode.Idle or Mode.Walking or Mode.Resting)) return;
         sprite.SetPose(ClawdPose.Happy);
         sprite.Sparkle();
         mode = Mode.Idle;
@@ -361,6 +390,7 @@ public sealed class RoamingController : IDisposable
         leaving = false;
         goingHome = false;
         standing = null;
+        hang = null;
     }
 
     private void StartStepping()
@@ -426,6 +456,10 @@ public sealed class RoamingController : IDisposable
                 UpdateSwing(now);
                 break;
 
+            case Mode.Hanging:
+                UpdateHang();
+                break;
+
             case Mode.Partying:
                 if (now >= partyUntil) FinishParty(now);
                 break;
@@ -452,6 +486,7 @@ public sealed class RoamingController : IDisposable
             Mode.Jumping => jump is null,
             Mode.Disguised => disguise is null,
             Mode.Swinging => swing is null,
+            Mode.Hanging => hang is null,
             Mode.Resting => leaving,
             _ => false,
         };
@@ -473,9 +508,11 @@ public sealed class RoamingController : IDisposable
         jump = null;
         disguise = null;
         swing = null;
+        hang = null;
         standing = null;
         fallSpeed = 0;
         mode = Mode.Falling;
+        sprite.ShowGear(ClawdGear.None);
         HideWeb();
         if (sprite.Look == ClawdLook.Clawd) sprite.SetPose(ClawdPose.Fall);
         else sprite.Morph(ClawdLook.Clawd, () => sprite?.SetPose(ClawdPose.Fall));
@@ -583,6 +620,109 @@ public sealed class RoamingController : IDisposable
         decideAt = now + (finishingEgg ? 1.6 : Between(0.8, 2));
         if (partyPending) BeginParty();
     }
+
+    // MARK: Hanging
+
+    /// Takes hold of the edge above him and stays there for as long as Claude is working.
+    private void StartHanging()
+    {
+        if (window is null || sprite is null) return;
+        var arriving = mode == Mode.Away;
+        if (arriving) Emerge();
+
+        var hold = GripSpot();
+        hang = new Hang { Grip = hold.Spot, WindowId = hold.WindowId, Frame = hold.Frame };
+        standing = null;
+        jump = null;
+        disguise = null;
+        fallSpeed = 0;
+        driftX = 0;
+        hangUntil = 0;
+        mode = Mode.Hanging;
+        position = new Point(hold.Spot.X, hold.Spot.Y + sprite.Size.Height);
+        sprite.FacingLeft = false;
+        sprite.SetPose(ClawdPose.Hang);
+        sprite.ShowGear(GearFor(watcher.Latest?.Activity));
+        sprite.Position = position;
+        StartStepping();
+        if (arriving) sprite.RiseUp();
+    }
+
+    /// The edge he hangs from: the top of the window in front, and the top of the screen
+    /// when there is no window to read.
+    private (Point Spot, int? WindowId, Rect? Frame) GripSpot()
+    {
+        if (window is null) return (position, null, null);
+        var screen = window.Screen;
+        var top = new Point(Clamped(position.X, screen.Left + 40, screen.Right - 70), screen.Top + 2);
+
+        var front = ScreenSurfaces.Foreground();
+        if (front == 0 || front == window.Handle) return (top, null, null);
+        if (ScreenSurfaces.ClassOf(front) is "Progman" or "WorkerW" or "Shell_TrayWnd") return (top, null, null);
+        if (ScreenSurfaces.WindowRect(front, window.Scale) is not { } frame) return (top, null, null);
+        if (frame.Width < 200 || frame.Top < screen.Top + 24 || frame.Top > screen.Bottom - 120) return (top, null, null);
+
+        return (new Point(Clamped(position.X, frame.Left + 30, frame.Right - 30), frame.Top + 2), (int)front, frame);
+    }
+
+    /// Rides the window he is holding while it is dragged, and takes the top of the screen
+    /// instead the moment that window can no longer be read.
+    private void UpdateHang()
+    {
+        if (window is null || sprite is null || hang is not { } hold) return;
+        var screen = window.Screen;
+
+        if (hold.WindowId is { } id && hold.Frame is { } old)
+        {
+            // A minimized or maximized window takes away the strip he grabbed, so he holds
+            // the top of the screen rather than nothing at all.
+            var fresh = ScreenSurfaces.WindowRect((nint)id, window.Scale);
+            if (fresh is not { } moved
+                || moved.Width < 200
+                || moved.Top < screen.Top + 4
+                || moved.Top > screen.Bottom - 120)
+            {
+                hold.WindowId = null;
+                hold.Frame = null;
+                hold.Grip = new Point(hold.Grip.X, screen.Top + 2);
+            }
+            else
+            {
+                hold.Grip = new Point(
+                    Clamped(hold.Grip.X + (moved.Left - old.Left), moved.Left + 30, moved.Right - 30),
+                    moved.Top + 2);
+                hold.Frame = moved;
+            }
+        }
+
+        hold.Grip = new Point(
+            Clamped(hold.Grip.X, screen.Left + 40, screen.Right - 70),
+            Clamped(hold.Grip.Y, screen.Top, screen.Bottom - 120));
+        position = new Point(hold.Grip.X, hold.Grip.Y + sprite.Size.Height);
+    }
+
+    /// Claude stopped, so he lets go and falls to whatever is underneath.
+    private void LetGo()
+    {
+        if (sprite is null) return;
+        hang = null;
+        standing = null;
+        fallSpeed = 0;
+        driftX = 0;
+        sprite.ShowGear(ClawdGear.None);
+        sprite.SetPose(ClawdPose.Fall);
+        mode = Mode.Falling;
+    }
+
+    private static ClawdGear GearFor(PetActivity? activity) => activity switch
+    {
+        PetActivity.Typing => ClawdGear.Laptop,
+        PetActivity.Reading => ClawdGear.Book,
+        PetActivity.Searching => ClawdGear.Glass,
+        PetActivity.Building => ClawdGear.Tools,
+        PetActivity.Thinking => ClawdGear.Dots,
+        _ => ClawdGear.None,
+    };
 
     // MARK: Surfaces
 
@@ -908,8 +1048,10 @@ public sealed class RoamingController : IDisposable
         easterEggUntil = DateTimeOffset.Now.AddSeconds(40);
         disguise = null;
         jump = null;
+        hang = null;
         leaving = false;
         goingHome = false;
+        sprite.ShowGear(ClawdGear.None);
         if (mode == Mode.Away)
         {
             sprite.Reset();
@@ -1287,6 +1429,10 @@ public sealed class RoamingController : IDisposable
 
     private static double Between(double from, double to)
         => to <= from ? from : from + Random.Shared.NextDouble() * (to - from);
+
+    /// Math.Clamp throws when the two ends cross, which a narrow window can do.
+    private static double Clamped(double value, double from, double to)
+        => to <= from ? from : Math.Clamp(value, from, to);
 
     private static double Square(double value) => value * value;
 }

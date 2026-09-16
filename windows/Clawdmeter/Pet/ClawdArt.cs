@@ -13,9 +13,12 @@ namespace Clawdmeter.Pet;
 
 public enum ClawdLook { Clawd, WindowsLogo, Folder, WindowButton, WebSuit, PopStar }
 
-public enum ClawdPose { Stand, Walk, Fall, Sit, Sleep, Happy, Work, Dance }
+public enum ClawdPose { Stand, Walk, Fall, Sit, Sleep, Happy, Dance, Hang, Wave }
 
 public enum ClawdEyes { Open, Closed, Happy }
+
+/// What Clawd carries to show what Claude is up to while he hangs there.
+public enum ClawdGear { None, Dots, Laptop, Book, Glass, Tools }
 
 /// One piece of Clawd the poses can move: the shape plus the two transforms they drive.
 public sealed class ClawdPart
@@ -104,6 +107,17 @@ public sealed class ClawdPieces
     public ClawdPart? LegsA { get; init; }
     public ClawdPart? LegsB { get; init; }
     public ClawdPart? Eyes { get; init; }
+}
+
+/// One drawn gadget plus the few parts of it that move.
+public sealed class ClawdGearPieces
+{
+    public required Canvas Content { get; init; }
+    /// Moved about as a whole, which is how the magnifier sweeps and the book bobs.
+    public TranslateTransform? Drift { get; init; }
+    public RotateTransform? Swing { get; init; }
+    public UIElement? Glow { get; init; }
+    public IReadOnlyList<UIElement> Dots { get; init; } = Array.Empty<UIElement>();
 }
 
 /// Clawd and his disguises, drawn as rectangles on a pixel grid.
@@ -362,6 +376,114 @@ public static class ClawdArt
             Eyes = new ClawdPart(eyes, new Point(17, 12)),
         };
     }
+
+    // MARK: Gear
+
+    /// The gadgets Clawd holds while Claude works, drawn on the same grid as his body so
+    /// they line up with him wherever he is. Null means he carries nothing.
+    public static ClawdGearPieces? Gear(ClawdGear gear, double unit) => gear switch
+    {
+        ClawdGear.Laptop => BuildLaptop(unit),
+        ClawdGear.Book => BuildBook(unit),
+        ClawdGear.Glass => BuildGlass(unit),
+        ClawdGear.Tools => BuildTools(unit),
+        ClawdGear.Dots => BuildDots(unit),
+        _ => null,
+    };
+
+    private static ClawdGearPieces BuildLaptop(double unit)
+    {
+        var canvas = new Canvas { IsHitTestVisible = false };
+        canvas.Children.Add(Shape(new Rect[] { new(3, 5.6, 10, 3.4) }, Ink.Lid, unit));
+        canvas.Children.Add(Shape(new Rect[] { new(3, 5.6, 10, 0.5) }, Ink.LidLight, unit));
+        var glow = Shape(new Rect[] { new(3.6, 6.2, 8.8, 2.4) }, Ink.Screen, unit);
+        canvas.Children.Add(glow);
+        canvas.Children.Add(Shape(new Rect[] { new(2, 9, 12, 1) }, Ink.Deck, unit));
+        return new ClawdGearPieces { Content = canvas, Glow = glow };
+    }
+
+    private static ClawdGearPieces BuildBook(double unit)
+    {
+        var canvas = new Canvas { IsHitTestVisible = false };
+        var drift = new TranslateTransform();
+        canvas.RenderTransform = drift;
+        canvas.Children.Add(Shape(new Rect[] { new(2.4, 5.8, 11.2, 4.4) }, Ink.Book, unit));
+        canvas.Children.Add(Shape(new Rect[] { new(2.8, 6.1, 5, 3.8), new(8.2, 6.1, 5, 3.8) }, Ink.Page, unit));
+
+        var lines = new List<Rect>(8);
+        for (var row = 0; row < 4; row++)
+        {
+            var y = 6.7 + row * 0.9;
+            lines.Add(new Rect(3.3, y, 3.9 - row * 0.3, 0.3));
+            lines.Add(new Rect(8.7, y, 3.6 + row * 0.2, 0.3));
+        }
+        canvas.Children.Add(Shape(lines, Ink.PageLine, unit));
+        return new ClawdGearPieces { Content = canvas, Drift = drift };
+    }
+
+    private static ClawdGearPieces BuildGlass(double unit)
+    {
+        var canvas = new Canvas { IsHitTestVisible = false };
+        var drift = new TranslateTransform();
+        canvas.RenderTransform = drift;
+        canvas.Children.Add(new Path
+        {
+            Data = new LineGeometry(new Point(10.7 * unit, 8.1 * unit), new Point(13.2 * unit, 10.8 * unit)),
+            Stroke = Palette.Brush(Ink.Wood),
+            StrokeThickness = 1.1 * unit,
+            StrokeStartLineCap = PenLineCap.Round,
+            StrokeEndLineCap = PenLineCap.Round,
+        });
+        canvas.Children.Add(new Path
+        {
+            Data = new EllipseGeometry(new Point(9 * unit, 6.4 * unit), 2.4 * unit, 2.4 * unit),
+            Fill = Palette.Brush(Ink.Lens),
+            Stroke = Palette.Brush(Ink.Steel),
+            StrokeThickness = 0.8 * unit,
+        });
+        canvas.Children.Add(Shape(new Rect[] { new(7.9, 5.3, 0.8, 0.8) }, Ink.Glint, unit));
+        return new ClawdGearPieces { Content = canvas, Drift = drift };
+    }
+
+    /// A hard hat on his head and a hammer swinging at his side.
+    private static ClawdGearPieces BuildTools(double unit)
+    {
+        var canvas = new Canvas { IsHitTestVisible = false };
+        canvas.Children.Add(Shape(new Rect[] { new(5, -2.4, 6, 1.7), new(3.6, -0.7, 8.8, 0.7) }, Ink.Hat, unit));
+        canvas.Children.Add(Shape(new Rect[] { new(7.5, -2.4, 1, 1.7), new(3.6, 0, 8.8, 0.3) }, Ink.HatBand, unit));
+
+        // The hammer hangs low and swings clear of his face.
+        var hammer = new Canvas { IsHitTestVisible = false };
+        var swing = new RotateTransform(-55, 13.6 * unit, 8 * unit);
+        hammer.RenderTransform = swing;
+        hammer.Children.Add(Shape(new Rect[] { new(13.25, 4.6, 0.7, 3.4) }, Ink.Wood, unit));
+        hammer.Children.Add(Shape(new Rect[] { new(12.2, 3.4, 3.2, 1.7) }, Ink.Steel, unit));
+        hammer.Children.Add(Shape(new Rect[] { new(12.2, 3.4, 3.2, 0.42) }, Ink.SteelLight, unit));
+        canvas.Children.Add(hammer);
+        return new ClawdGearPieces { Content = canvas, Swing = swing };
+    }
+
+    private static ClawdGearPieces BuildDots(double unit)
+    {
+        var canvas = new Canvas { IsHitTestVisible = false };
+        var spots = new[] { (X: 17.2, Y: 3.6, R: 0.6), (X: 19.6, Y: 2.3, R: 0.85), (X: 22.6, Y: 0.7, R: 1.15) };
+        var dots = new List<UIElement>(spots.Length);
+        foreach (var spot in spots)
+        {
+            var dot = new Path
+            {
+                Data = new EllipseGeometry(new Point(spot.X * unit, spot.Y * unit), spot.R * unit, spot.R * unit),
+                Fill = Palette.Brush(Ink.Bubble),
+                Stroke = Palette.Brush(Ink.DustEdge),
+                StrokeThickness = 0.5,
+                Opacity = 0.25,
+                IsHitTestVisible = false,
+            };
+            canvas.Children.Add(dot);
+            dots.Add(dot);
+        }
+        return new ClawdGearPieces { Content = canvas, Dots = dots };
+    }
 }
 
 /// The few colors Clawd needs that the usage palette does not carry.
@@ -383,6 +505,21 @@ internal static class Ink
     public static readonly Color Ball = Color.FromRgb(184, 184, 184);
     public static readonly Color BallShade = Color.FromRgb(115, 115, 115);
     public static readonly Color Cord = Color.FromArgb(230, 204, 204, 204);
+
+    public static readonly Color Lid = Color.FromRgb(201, 207, 214);
+    public static readonly Color LidLight = Color.FromRgb(232, 236, 240);
+    public static readonly Color Deck = Color.FromRgb(168, 176, 186);
+    public static readonly Color Screen = Color.FromRgb(96, 160, 214);
+    public static readonly Color Book = Color.FromRgb(61, 110, 181);
+    public static readonly Color Page = Color.FromRgb(247, 242, 232);
+    public static readonly Color PageLine = Color.FromArgb(150, 90, 84, 77);
+    public static readonly Color Hat = Color.FromRgb(250, 184, 31);
+    public static readonly Color HatBand = Color.FromRgb(217, 161, 20);
+    public static readonly Color Steel = Color.FromRgb(176, 182, 189);
+    public static readonly Color SteelLight = Color.FromRgb(214, 219, 224);
+    public static readonly Color Wood = Color.FromRgb(168, 122, 74);
+    public static readonly Color Lens = Color.FromArgb(90, 190, 226, 245);
+    public static readonly Color Bubble = Color.FromArgb(235, 250, 248, 245);
 }
 
 /// A small breathing Clawd for the usage panel. Draws itself, so it costs one
