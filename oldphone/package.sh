@@ -13,7 +13,7 @@
 set -e
 
 # The version, in one place. Bump this line and nothing else.
-VERSION=1.0.0
+VERSION=1.0.1
 
 PACKAGE=com.pavliukovbr.clawdmeter
 REPO=https://github.com/pavliukovbr/clawdmeter

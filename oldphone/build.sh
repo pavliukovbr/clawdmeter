@@ -1,5 +1,5 @@
 #!/bin/sh
-# Build Clawdmeter.app for an armv7 iPhone on iOS 9.
+# Build Clawdmeter.app for an armv7 iPhone, iOS 8.0 and up.
 #
 # Everything lands in ./build, which git ignores. The iOS 9.3 SDK is fetched once from
 # the theos SDK mirror; Xcode has not shipped one since version 10.
@@ -43,39 +43,57 @@ if [ ! -d "$SDK" ]; then
     python3 "$HERE/Resources/striparchs.py" "$SDK"
 fi
 
-# 2. Compile and link. One translation unit per source, armv7, nothing newer than 9.0.
-rm -rf "$APP"
-mkdir -p "$APP"
+# 2. Compile, then link. The two steps are separate on purpose: the driver asks for
+#    libarclite when ARC and linking meet on one command line with a deployment target
+#    this old, and no toolchain has shipped that library for years. Building against
+#    8.0 is also what makes clang refuse anything the 9.3 headers mark as newer.
+rm -rf "$APP" "$BUILD/obj"
+mkdir -p "$APP" "$BUILD/obj"
+
+for SOURCE in "$HERE"/Clawdmeter/*.m; do
+    NAME=$(basename "$SOURCE" .m)
+    xcrun clang -c \
+        -target armv7-apple-ios8.0 \
+        -isysroot "$SDK" \
+        -fobjc-arc -fvisibility=hidden \
+        -Wall -Wextra -Wno-unused-parameter -Werror=implicit-function-declaration \
+        -Werror=unguarded-availability -Werror=unguarded-availability-new \
+        -Os \
+        "$SOURCE" -o "$BUILD/obj/$NAME.o"
+done
 
 xcrun clang \
-    -target armv7-apple-ios9.0 \
+    -target armv7-apple-ios8.0 \
     -isysroot "$SDK" \
-    -fobjc-arc -fvisibility=hidden \
-    -Wall -Wextra -Wno-unused-parameter -Werror=implicit-function-declaration \
-    -Os \
     -framework UIKit -framework Foundation -framework CoreGraphics \
     -framework QuartzCore -framework AudioToolbox \
     -framework CFNetwork \
-    "$HERE"/Clawdmeter/*.m \
+    "$BUILD"/obj/*.o \
     -o "$BIN"
 
-# 3. Icons, drawn by a small script so the repository carries no binaries.
+# 3. The entry point. The linker that ships today forgets to mark main as Thumb on
+#    armv7, and the phone then runs Thumb code in ARM mode and dies on the first
+#    instruction. This puts the bit back, before the signature is applied.
+python3 "$HERE/Resources/fixentry.py" "$BIN"
+
+# 4. Icons, drawn by a small script so the repository carries no binaries.
 python3 "$HERE/Resources/mkicon.py" "$APP/AppIcon60x60@2x.png" 120
 python3 "$HERE/Resources/mkicon.py" "$APP/AppIcon40x40@2x.png" 80
 python3 "$HERE/Resources/mkicon.py" "$APP/AppIcon29x29@2x.png" 58
 
-# 4. Info.plist. iOS 9 reads either form; binary is what a real bundle ships.
+# 5. Info.plist. iOS 9 reads either form; binary is what a real bundle ships.
 cp "$HERE/Resources/Info.plist" "$APP/Info.plist"
 plutil -convert binary1 "$APP/Info.plist"
 
-# 5. The ad hoc signature a jailbroken device expects.
+# 6. The ad hoc signature a jailbroken device expects.
 ldid -S"$HERE/Resources/ent.xml" -Icom.clawdmeter.oldphone "$BIN"
 chmod 755 "$BIN"
 
-# 6. Proof it is what it claims to be.
+# 7. Proof it is what it claims to be.
 echo
 file "$BIN"
 xcrun otool -l "$BIN" | grep -A3 LC_VERSION_MIN_IPHONEOS | head -5
+xcrun otool -l "$BIN" | grep -A2 LC_MAIN | head -3
 python3 "$HERE/Resources/checksyms.py" "$SDK" "$BIN"
 echo "app size: $(du -sh "$APP" | cut -f1)"
 echo "built $APP"

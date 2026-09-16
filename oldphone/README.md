@@ -8,9 +8,10 @@ it reads, a magnifier while it searches, a hard hat while it builds, and curls u
 a few Zs when nothing is happening. When Claude asks you something, the phone buzzes
 once and puts a big amber exclamation mark on the screen.
 
-This is a real native app, Objective C and UIKit, built for armv7 and iOS 9. It runs on
-an iPhone 4S, a 4, a 3GS and anything newer that is still on iOS 9. Clawd is drawn from
-coloured squares, so there is not a single image in the bundle.
+This is a real native app, Objective C and UIKit, built for armv7 with a deployment
+target of iOS 8.0. It runs on an iPhone 4S, a 4, a 3GS and anything newer still stuck on
+iOS 8 or 9. Clawd is drawn from coloured squares, so there is not a single image in the
+bundle.
 
 <p align="center">
   <img src="../docs/notch.gif" width="480" alt="Clawd typing, reading, searching, building and sleeping">
@@ -20,7 +21,7 @@ coloured squares, so there is not a single image in the bundle.
 
 **On the phone**
 
-- A jailbreak (iOS 9 has several, pick the one for your build).
+- A jailbreak (iOS 8 and 9 both have several, pick the one for your build).
 - Cydia, which every jailbreak installs. That is enough on its own, see below. For the
   SSH way instead you need OpenSSH and uikittools from Cydia.
 - The phone and the PC on the same network.
@@ -77,8 +78,10 @@ Without Cydia, or to push a build straight to a phone you already have on SSH:
 
 The first one fetches the iOS 9.3 SDK into `build/` the first time it runs, patches the
 stub libraries, compiles, draws the icons, signs the binary and lays out
-`build/Clawdmeter.app`. It then prints proof: the architecture, the minimum iOS version,
-a check that every symbol it imports exists in the 9.3 SDK, and the bundle size.
+`build/Clawdmeter.app`. Compiling asks for iOS 8.0, so clang refuses anything the 9.3
+headers mark as newer, and the build fails rather than shipping a call the phone does not
+have. It then prints proof: the architecture, the minimum iOS version, the entry point,
+a check that every symbol it imports exists in the SDK, and the bundle size.
 `./build.sh clean` throws the whole folder away, SDK included.
 
 The second one copies the bundle to `/Applications` on the phone, fixes the owner and
@@ -122,6 +125,12 @@ phone plugged in.
   instead of throwing them away.
 - The Xcode that ships today cannot build for iOS 9 on its own, which is why `build.sh`
   fetches the old SDK from the theos mirror.
+- On armv7 the processor picks ARM or Thumb from bit 0 of the address it jumps to, and
+  the linker that ships today no longer sets that bit on the entry point of an armv7
+  binary. Without it the phone runs the first instruction of `main` in the wrong mode and
+  the app dies on launch. `Resources/fixentry.py` puts the bit back after linking.
+- App Transport Security only exists from iOS 9, so the exception in the bundle is dead
+  weight on an iOS 8 phone and plain http works there either way.
 - `Tools/shots.sh` draws every screen to a PNG at 480 by 320 points, on the Mac, for
   checking the layout without a phone in hand. It builds the same sources for Mac
   Catalyst and is never part of the phone bundle: `build.sh` compiles `Clawdmeter/*.m`
