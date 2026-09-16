@@ -28,6 +28,10 @@ final class RoamingController: NSObject {
         var until: CFTimeInterval
         var returnPoint: CGPoint
         var windowID: Int?
+        /// Where the hop to the Apple menu starts, so you can follow him there.
+        var from: CGPoint
+        var start: CFTimeInterval
+        var travel: CFTimeInterval = 0
     }
 
     /// Web slinging: a pendulum from an anchor under the menu bar, then the next one.
@@ -73,7 +77,7 @@ final class RoamingController: NSObject {
     private var partyPending = false
     private var perchLeaveAt: CFTimeInterval = 0
     private var nextDisguise: CFTimeInterval = CACurrentMediaTime() + 40
-    private var nextApple: CFTimeInterval = CACurrentMediaTime() + 150
+    private var nextApple: CFTimeInterval = CACurrentMediaTime() + 30
     private var hoverSince: CFTimeInterval?
     private var pettedUntil: CFTimeInterval = 0
     private var quietSince = Date()
@@ -470,7 +474,7 @@ final class RoamingController: NSObject {
         if roll < 0.07 {
             headHome(now: now)
         } else if now >= nextApple, roll < 0.25 {
-            nextApple = now + Double.random(in: 180...360)
+            nextApple = now + Double.random(in: 120...240)
             startDisguise(.apple, now: now)
         } else if now >= nextDisguise, roll < 0.35, let look = disguises(on: surface).randomElement() {
             nextDisguise = now + Double.random(in: 45...90)
@@ -578,8 +582,17 @@ final class RoamingController: NSObject {
             windowID = standing?.id
         }
         mode = .disguised
-        disguise = Disguise(look: look, until: now + Double.random(in: 6...9), returnPoint: position, windowID: windowID)
+        var next = Disguise(look: look, until: now + Double.random(in: 6...9), returnPoint: position, windowID: windowID, from: position, start: now + 0.15)
+        if look == .apple {
+            let corner = appleCorner()
+            next.travel = min(max(0.5 + Double(hypot(corner.x - position.x, corner.y - position.y)) / 2200, 0.6), 1.2)
+            next.until = next.start + next.travel + Double.random(in: 9...12)
+            // Turns back into Clawd right there and drops from under the menu bar.
+            next.returnPoint = CGPoint(x: corner.x + 4, y: menuBarHeight() + 6)
+        }
+        disguise = next
         sprite.morph(into: look) { [weak self] in
+            if look == .apple { self?.sprite?.facingLeft = false }
             self?.updateDisguise(now: CACurrentMediaTime())
         }
     }
@@ -589,8 +602,13 @@ final class RoamingController: NSObject {
 
         switch disguise.look {
         case .apple:
-            // Right on top of the Apple menu.
-            position = CGPoint(x: 21, y: menuBarHeight() / 2 + sprite.size.height / 2)
+            // A quick hop up to the Apple menu, then right on top of it.
+            let corner = appleCorner()
+            let t = CGFloat(min(max((now - disguise.start) / max(disguise.travel, 0.01), 0), 1))
+            let eased = t * t * (3 - 2 * t)
+            let x = disguise.from.x + (corner.x - disguise.from.x) * eased
+            let y = disguise.from.y + (corner.y - disguise.from.y) * eased - 60 * 4 * t * (1 - t)
+            position = CGPoint(x: x, y: max(y, corner.y))
         case .trafficLight:
             // Just past the green button, centered on the title bar.
             if let frame = surfaces.first(where: { $0.id == disguise.windowID })?.windowFrame {
@@ -933,6 +951,11 @@ final class RoamingController: NSObject {
         let mouse = NSEvent.mouseLocation
         let origin = NSScreen.screens.first?.frame.origin ?? .zero
         return CGPoint(x: mouse.x - origin.x, y: screenSize.height - (mouse.y - origin.y))
+    }
+
+    /// Where the orange apple sits, over the real one at the left end of the menu bar.
+    private func appleCorner() -> CGPoint {
+        CGPoint(x: 21, y: menuBarHeight() / 2 + 8.5)
     }
 
     private func menuBarHeight() -> CGFloat {
