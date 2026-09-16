@@ -24,6 +24,7 @@ public partial class App : Application
     private KeepAwake? keepAwake;
     private FinishedAlert? alert;
     private Updater? updater;
+    private MiniDisplay? mini;
     private bool updatePromptOpen;
 
     private ToolStripMenuItem? showPanelItem;
@@ -33,6 +34,7 @@ public partial class App : Application
     private ToolStripMenuItem? displayItem;
     private ToolStripMenuItem? startupItem;
     private ToolStripMenuItem? autoUpdateItem;
+    private ToolStripMenuItem? miniItem;
     private readonly List<(KeepAwakeMode Mode, ToolStripMenuItem Item)> awakeItems = new();
 
     protected override void OnStartup(StartupEventArgs args)
@@ -76,6 +78,9 @@ public partial class App : Application
 
             alert = new FinishedAlert(watcher);
             alert.Start();
+
+            mini = new MiniDisplay(store, watcher);
+            mini.Start();
 
             updater = new Updater();
             // An update leaves through the same door as Quit, so the tray icon goes with it.
@@ -186,6 +191,15 @@ public partial class App : Application
             settings.UpdateAutomatically = value;
             settings.Save();
         });
+        miniItem = Toggle("Screen on an old phone", value =>
+        {
+            settings.MiniDisplay = value;
+            settings.Save();
+            if (value) ShowPhoneAddress();
+        });
+        strip.Items.Add(miniItem);
+        strip.Items.Add(Item("Show the phone address", ShowPhoneAddress));
+        strip.Items.Add(new ToolStripSeparator());
         strip.Items.Add(startupItem);
         strip.Items.Add(autoUpdateItem);
         strip.Items.Add(new ToolStripSeparator());
@@ -206,6 +220,7 @@ public partial class App : Application
         if (displayItem is not null) displayItem.Checked = settings.KeepDisplayOn;
         if (startupItem is not null) startupItem.Checked = StartupItem.IsEnabled;
         if (autoUpdateItem is not null) autoUpdateItem.Checked = settings.UpdateAutomatically;
+        if (miniItem is not null) miniItem.Checked = settings.MiniDisplay;
         foreach (var (mode, item) in awakeItems)
         {
             item.Checked = settings.KeepAwake == mode;
@@ -291,6 +306,31 @@ public partial class App : Application
         }
     }
 
+    /// The phone only needs the address once, so put it on the clipboard as well.
+    private void ShowPhoneAddress()
+    {
+        if (mini?.Address is not { } address)
+        {
+            System.Windows.MessageBox.Show(
+                "Turn on Screen on an old phone first.",
+                "Clawdmeter");
+            return;
+        }
+        try
+        {
+            System.Windows.Clipboard.SetText(address);
+        }
+        catch (Exception exception)
+        {
+            Log(exception);
+        }
+        System.Windows.MessageBox.Show(
+            "Open this on the phone, on the same network:\n\n" + address
+            + "\n\nThe address is on the clipboard too. On an iPhone, use Share and Add to Home Screen"
+            + " to get it full screen, and set Auto Lock to Never so it stays on.",
+            "Clawdmeter");
+    }
+
     private void OnDispatcherError(object sender, DispatcherUnhandledExceptionEventArgs args)
     {
         // A wobble in the pet or the panel should never take the whole app down.
@@ -321,6 +361,7 @@ public partial class App : Application
             tray = null;
         }
         roaming?.Dispose();
+        mini?.Dispose();
         keepAwake?.Dispose();
         alert?.Dispose();
         watcher?.Dispose();

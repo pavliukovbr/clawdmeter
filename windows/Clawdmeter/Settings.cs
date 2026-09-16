@@ -39,6 +39,9 @@ public sealed class Settings
     public bool KeepDisplayOn { get; set; }
     public bool RunAtStartup { get; set; }
     public bool UpdateAutomatically { get; set; } = true;
+    /// Serves a small usage page on the home network for an old phone to keep open.
+    public bool MiniDisplay { get; set; }
+    public string MiniDisplayKey { get; set; } = "";
     public double? PanelLeft { get; set; }
     public double? PanelTop { get; set; }
 

@@ -100,6 +100,14 @@ Clawdmeter runs on Windows 10 and 11 as well, reading the same Claude Code sign 
 
 Drag the panel anywhere, it stays where you leave it. Everything can be turned off from the menu.
 
+### An old phone as a second screen
+
+Have a phone gathering dust? Turn on **Screen on an old phone** and the PC serves a small page on your home network with the big number, the bars, the countdown and Clawd walking along the bottom. Pick **Show the phone address**, open it on the phone and leave it there.
+
+It is built for old browsers, so even a phone from 2011 keeps it on screen. On an iPhone use **Share** and **Add to Home Screen** to lose the browser bars, set **Auto Lock** to **Never** and leave it charging. The page turns itself sideways when the phone is upright, so it reads the same either way.
+
+The page only answers phones on your own network and only with the key that is part of the address, it listens on port 47848, and it is off until you turn it on.
+
 ## Works with every plan
 
 Clawdmeter detects your plan and adapts on its own.
@@ -213,7 +221,7 @@ The project is organized in a few folders:
 
 Clawdmeter runs quietly in the menu bar. Every 5 minutes, after waking from sleep, and whenever you click Clawd, it:
 
-1. Reads the sign in Claude Code already keeps in your login keychain, or in `.claude\.credentials.json` on Windows.
+1. Reads the sign in Claude Code already keeps in your login keychain, or in the Windows credential manager.
 2. Asks Anthropic for your current limits, the same numbers you see with `/usage`.
 3. Adds up tokens from the Claude Code session logs in `~/.claude/projects`.
 4. Saves a small summary for the widget and asks it to redraw.
@@ -229,6 +237,7 @@ Clawdmeter keeps everything on your own devices.
 - **Your windows** are only measured, so Clawd knows where he can stand. What is inside them is never looked at, and no screen recording permission is needed.
 - **What you do** is limited to which app is in front and how long ago a key was pressed. Which keys you press is never known.
 - **What is saved** is one small file in `~/Library/Application Support/Clawdmeter`, or in `%APPDATA%\Clawdmeter` on Windows, with percentages, reset times and daily totals, readable only by you.
+- **The screen for an old phone** is off until you turn it on. It answers only addresses on your own network, only with the key in the address, and it sends percentages and counts, never your logs or your sign in.
 - **Sharing with iPhone** is off until you turn it on. The Mac only answers phones paired with its code, replies are encrypted, and the port closes when you turn it off. Reset the code any time to unpair every phone.
 - **The iPhone** keeps the pairing and the last numbers in its keychain. It never gets your Claude sign in.
 - **Updates** come from the public release list of this repository on GitHub. Nothing about you or your Mac is sent.
@@ -242,6 +251,7 @@ There is no analytics, no tracking and no account.
 - Widgets on a dimmed desktop keep Clawd still, since macOS does not animate them there.
 - Closed the menu bar icon by accident? Open Clawdmeter again and it comes back.
 - Sharing with iPhone listens on port 47847, and is a Mac feature for now.
+- The screen for an old phone listens on port 47848, and is a Windows feature for now. Windows asks to allow it through the firewall the first time.
 - The Windows app is not code signed, so SmartScreen warns the first time you run it.
 
 ## License

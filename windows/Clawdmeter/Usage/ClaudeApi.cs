@@ -1,5 +1,6 @@
 using System.IO;
 using System.Net.Http;
+using System.Runtime.InteropServices;
 using System.Net.Http.Headers;
 using System.Text.Json;
 using System.Text.Json.Serialization;
@@ -35,7 +36,7 @@ public static class CredentialsReader
             {
             }
         }
-        return null;
+        return FromCredentialManager();
     }
 
     private static IEnumerable<string> Paths()
@@ -46,7 +47,107 @@ public static class CredentialsReader
             Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),
             "Claude",
             ".credentials.json");
+        yield return Path.Combine(
+            Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
+            "Claude",
+            ".credentials.json");
     }
+
+    /// On Windows, Claude Code keeps the sign in in the credential manager rather than a file.
+    private static ClaudeCredentials? FromCredentialManager()
+    {
+        foreach (var target in new[] { "Claude Code-credentials", "Claude Code", "claude-code-credentials" })
+        {
+            if (ReadCredential(target) is { } found) return found;
+        }
+
+        foreach (var target in CredentialNames())
+        {
+            if (!target.Contains("claude", StringComparison.OrdinalIgnoreCase)) continue;
+            if (ReadCredential(target) is { } found) return found;
+        }
+        return null;
+    }
+
+    private static ClaudeCredentials? ReadCredential(string target)
+    {
+        if (!CredRead(target, CredentialTypeGeneric, 0, out var handle)) return null;
+        try
+        {
+            var credential = Marshal.PtrToStructure<Credential>(handle);
+            if (credential.CredentialBlobSize == 0 || credential.CredentialBlob == 0) return null;
+            var bytes = new byte[credential.CredentialBlobSize];
+            Marshal.Copy(credential.CredentialBlob, bytes, 0, bytes.Length);
+            return Parse(Decode(bytes));
+        }
+        catch (Exception exception) when (exception is JsonException or ArgumentException)
+        {
+            return null;
+        }
+        finally
+        {
+            CredFree(handle);
+        }
+    }
+
+    /// Only the names are looked at, and only the ones that mention Claude are opened.
+    private static IEnumerable<string> CredentialNames()
+    {
+        if (!CredEnumerate(null, 0, out var count, out var array)) yield break;
+        var names = new List<string>();
+        try
+        {
+            for (var index = 0; index < count; index++)
+            {
+                var entry = Marshal.ReadIntPtr(array, index * nint.Size);
+                var credential = Marshal.PtrToStructure<Credential>(entry);
+                if (credential.TargetName == 0) continue;
+                var name = Marshal.PtrToStringUni(credential.TargetName);
+                if (name is not null) names.Add(name);
+            }
+        }
+        finally
+        {
+            CredFree(array);
+        }
+        foreach (var name in names) yield return name;
+    }
+
+    /// The blob is written as plain text by some versions and as wide text by others.
+    private static string Decode(byte[] bytes)
+    {
+        var text = System.Text.Encoding.UTF8.GetString(bytes).TrimStart('﻿');
+        if (text.TrimStart().StartsWith('{')) return text;
+        return System.Text.Encoding.Unicode.GetString(bytes).TrimStart('﻿');
+    }
+
+    private const uint CredentialTypeGeneric = 1;
+
+    [StructLayout(LayoutKind.Sequential)]
+    private struct Credential
+    {
+        public uint Flags;
+        public uint Type;
+        public nint TargetName;
+        public nint Comment;
+        public long LastWritten;
+        public uint CredentialBlobSize;
+        public nint CredentialBlob;
+        public uint Persist;
+        public uint AttributeCount;
+        public nint Attributes;
+        public nint TargetAlias;
+        public nint UserName;
+    }
+
+    [DllImport("advapi32.dll", EntryPoint = "CredReadW", CharSet = CharSet.Unicode, SetLastError = true)]
+    private static extern bool CredRead(string target, uint type, uint flags, out nint credential);
+
+    [DllImport("advapi32.dll", EntryPoint = "CredEnumerateW", CharSet = CharSet.Unicode, SetLastError = true)]
+    private static extern bool CredEnumerate(string? filter, uint flags, out int count, out nint credentials);
+
+    [DllImport("advapi32.dll", EntryPoint = "CredFree")]
+    private static extern void CredFree(nint buffer);
 
     private static ClaudeCredentials? Parse(string json)
     {
