@@ -4,3 +4,9 @@ dist/
 DerivedData/
 xcuserdata/
 *.xcuserstate
+bin/
+obj/
+bin_pet/
+obj_pet/
+bin_sys/
+obj_sys/
