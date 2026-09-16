@@ -93,7 +93,8 @@ Clawdmeter runs on Windows 10 and 11 as well, reading the same Claude Code sign 
 
 - A small panel on the desktop with your session, weekly and model limits, the same meters as the Mac widget
 - An icon in the notification area: click it to show or hide the panel, right click it for the settings
-- Clawd walks along the top edges of your windows, rides them when you drag them and falls when they close
+- Clawd hangs from the top edge of the window in front while Claude works, with a laptop, a book, a magnifier or a hard hat depending on what Claude is doing, and lets go when it is done
+- The rest of the time he walks along the top edges of your windows, rides them when you drag them and falls when they close
 - He lives on the taskbar near the clock instead of a notch, and climbs back there when Claude gets to work
 - He pretends to be a folder, an extra window button, or the logo on the Start button
 - Keep the PC awake while Claude works, open at login, and the same alert when Claude finishes
