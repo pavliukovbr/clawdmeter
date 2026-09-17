@@ -7,7 +7,7 @@ struct ClawdmeterApp: App {
 
     var body: some Scene {
         MenuBarExtra(isInserted: $showMenuBarIcon) {
-            MenuPanel(store: appDelegate.store, updater: appDelegate.updater, keepAwake: appDelegate.keepAwake, phoneSharing: appDelegate.phoneSharing)
+            MenuPanel(store: appDelegate.store, updater: appDelegate.updater, keepAwake: appDelegate.keepAwake, oldPhoneScreen: appDelegate.oldPhoneScreen)
         } label: {
             Image(nsImage: MenuBarIcon.image)
                 .accessibilityLabel("Clawdmeter")
@@ -22,14 +22,16 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     let watcher = ClaudeActivityWatcher()
     let updater = Updater()
     let keepAwake: KeepAwake
-    let phoneSharing: PhoneSharing
+    let oldPhoneScreen: OldPhoneScreen
     private var notchPet: NotchPetController?
     private var roaming: RoamingController?
     private var notifier: ClaudeNotifier?
 
     override init() {
+        // The iPhone app is retired, so its server stays off even for anyone who had it on.
+        UserDefaults.standard.set(false, forKey: PhoneSharing.enabledKey)
         keepAwake = KeepAwake(watcher: watcher)
-        phoneSharing = PhoneSharing(store: store, watcher: watcher)
+        oldPhoneScreen = OldPhoneScreen(store: store, watcher: watcher)
         super.init()
     }
 

@@ -32,11 +32,13 @@ bundle.
 - `ldid`, from `brew install ldid`, for the ad hoc signature a jailbroken phone expects.
 - `git` and `python3`, which macOS already has.
 
-**On the PC**
+**On the computer**
 
-- The Clawdmeter Windows app running, with its usage endpoint switched on. That is what
-  serves `http://<pc>:47848/usage?k=<key>`. There is no login on the phone, the key in
-  the address is the whole story, so keep this on your own network.
+- Clawdmeter on the Mac with **Screen on an Old Phone** turned on, which is the
+  recommended setup. The Windows app can do the same with **Screen on an old phone**,
+  but it is still experimental. Either one serves `http://<computer>:47848/usage?k=<key>`
+  and shows it as a code to scan. There is no login on the phone, the key in the address
+  is the whole story, so keep this on your own network.
 
 ## From Cydia
 
@@ -46,7 +48,8 @@ The easy way, and the only one that needs nothing but the phone:
 2. Type `https://pavliukovbr.github.io/clawdmeter/cydia/` and tap **Add Source**. Cydia
    warns once that the source is not signed, which it is not. Carry on.
 3. Open the source, pick **Clawdmeter** and tap **Install**. uikittools comes with it.
-4. Open the app, hold a finger on the screen and type the address of the PC and the key.
+4. Open the app. The camera opens by itself: point it at the code Clawdmeter shows on the
+   computer and you are done. No camera, or it will not read? Tap **Type it instead**.
 
 To build that repository yourself, from this folder:
 
@@ -101,9 +104,9 @@ stacks instead.
 - **Stroke him** back and forth and he shows a heart.
 - **Double tap the ground** to drop a snack. He walks over and eats it.
 - **Tap him** for a startle.
-- **Hold a finger** anywhere for a second to type a different PC address or key. What
-  you type there wins over whatever the install script wrote, so a reinstall does not
-  undo it.
+- **Hold a finger** anywhere for a second to scan the code again, for example after the
+  computer got a new address. **Type it instead** is right there too. What you set this
+  way wins over whatever the install script wrote, so a reinstall does not undo it.
 
 Every one of those gives one short buzz, never a string of them.
 

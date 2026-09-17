@@ -5,6 +5,7 @@
 #import "CMPet.h"
 #import "CMSettings.h"
 #import "CMUsage.h"
+#import "CMScanner.h"
 #import <AudioToolbox/AudioToolbox.h>
 #import <math.h>
 
@@ -13,7 +14,7 @@ static NSTimeInterval const CMSleepAfter = 70.0;
 // The shortest gap between two buzzes, so nothing ever turns into a burst.
 static NSTimeInterval const CMBuzzGap = 0.8;
 
-@interface CMRoot () <CMUsageClientDelegate, UIGestureRecognizerDelegate>
+@interface CMRoot () <CMUsageClientDelegate, UIGestureRecognizerDelegate, CMScannerDelegate>
 {
     CAGradientLayer *_sky;
     CALayer *_ground;
@@ -52,6 +53,7 @@ static NSTimeInterval const CMBuzzGap = 0.8;
     BOOL _foodOut;
     CGFloat _foodX;
     BOOL _settingsOpen;
+    BOOL _offeredScan;
 }
 @end
 
@@ -108,7 +110,7 @@ static NSTimeInterval const CMBuzzGap = 0.8;
     _client.delegate = self;
 
     [_panel showWaitingWithText:[[CMSettings shared] usageURL] != nil
-                                ? @"asking the PC" : @"hold down to set the PC address"];
+                                ? @"asking the computer" : @"hold down to scan the code"];
 
     _untilWander = 3.0;
     [[CMPet shared] catchUpAfterBreak];
@@ -235,6 +237,12 @@ static NSTimeInterval const CMBuzzGap = 0.8;
 {
     [super viewDidAppear:animated];
     [self comingBack];
+
+    // First launch knows nowhere to look yet, so go straight to the camera.
+    if (!_offeredScan && [[CMSettings shared] usageURL] == nil) {
+        _offeredScan = YES;
+        [self openScanner];
+    }
 }
 
 - (void)comingBack
@@ -332,7 +340,7 @@ static NSTimeInterval const CMBuzzGap = 0.8;
     }
 }
 
-#pragma mark - Numbers from the PC
+#pragma mark - Numbers from the computer
 
 - (void)usageClient:(CMUsageClient *)client didReceiveUsage:(CMUsage *)usage
 {
@@ -378,7 +386,7 @@ static NSTimeInterval const CMBuzzGap = 0.8;
     _offline = YES;
     if (_usage == nil) {
         NSString *text = [[CMSettings shared] usageURL] != nil
-                       ? @"no answer from the PC" : @"hold down to set the PC address";
+                       ? @"no answer from the computer" : @"hold down to scan the code";
         [_panel showWaitingWithText:text];
     } else {
         [_panel setOffline:YES];
@@ -560,7 +568,7 @@ shouldRecognizeSimultaneouslyWithGestureRecognizer:(UIGestureRecognizer *)second
     [_clawd showHeart];
 }
 
-#pragma mark - Where the PC lives
+#pragma mark - Where the computer lives
 
 - (void)handleHold:(UILongPressGestureRecognizer *)hold
 {
@@ -568,13 +576,53 @@ shouldRecognizeSimultaneouslyWithGestureRecognizer:(UIGestureRecognizer *)second
     _quietFor = 0;
     [self clearAlert];
     if (_settingsOpen) return;
-    _settingsOpen = YES;
     [self buzzOnce];
+    [self openScanner];
+}
+
+- (void)openScanner
+{
+    if (_settingsOpen || self.presentedViewController != nil) return;
+    _settingsOpen = YES;
+    CMScanner *scanner = [[CMScanner alloc] init];
+    scanner.delegate = self;
+    [self presentViewController:scanner animated:YES completion:nil];
+}
+
+- (void)scanner:(CMScanner *)scanner didFindAddress:(NSString *)address key:(NSString *)key
+{
+    [[CMSettings shared] saveAddress:address key:key];
+    [self buzzOnce];
+    [scanner dismissViewControllerAnimated:YES completion:^{
+        self->_settingsOpen = NO;
+        [self settingsChanged];
+    }];
+}
+
+- (void)scannerDidCancel:(CMScanner *)scanner
+{
+    [scanner dismissViewControllerAnimated:YES completion:^{
+        self->_settingsOpen = NO;
+    }];
+}
+
+- (void)scannerWantsTyping:(CMScanner *)scanner
+{
+    [scanner dismissViewControllerAnimated:YES completion:^{
+        self->_settingsOpen = NO;
+        [self showTyping];
+    }];
+}
+
+- (void)showTyping
+{
+    if (_settingsOpen) return;
+    _settingsOpen = YES;
 
     CMSettings *settings = [CMSettings shared];
     UIAlertController *sheet =
         [UIAlertController alertControllerWithTitle:@"Clawdmeter"
-                                            message:@"Address of the PC running Clawdmeter, and its key."
+                                            message:@"Address of the computer running Clawdmeter, and its key."
                                      preferredStyle:UIAlertControllerStyleAlert];
 
     [sheet addTextFieldWithConfigurationHandler:^(UITextField *field) {
@@ -623,7 +671,7 @@ shouldRecognizeSimultaneouslyWithGestureRecognizer:(UIGestureRecognizer *)second
     _sawAnswer = NO;
     _knowTurn = NO;
     [_panel showWaitingWithText:[[CMSettings shared] usageURL] != nil
-                                ? @"asking the PC" : @"hold down to set the PC address"];
+                                ? @"asking the computer" : @"hold down to scan the code"];
     [_panel setOffline:NO];
     [_client refreshNow];
 }

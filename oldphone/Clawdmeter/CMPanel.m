@@ -280,7 +280,7 @@
 
 - (void)setOffline:(BOOL)offline
 {
-    _quiet.text = offline ? @"no answer from the PC" : @"";
+    _quiet.text = offline ? @"no answer from the computer" : @"";
     [UIView animateWithDuration:0.25
                      animations:^{
                          _quiet.alpha = offline ? 1.0f : 0.0f;
@@ -301,7 +301,7 @@
     _value.text = @"...";
     _value.textColor = [CMPalette faint];
     _value.alpha = 1.0f;
-    _reset.text = text.length > 0 ? text : @"looking for the PC";
+    _reset.text = text.length > 0 ? text : @"looking for the computer";
     _detail.text = @"";
     _barTitle.text = @"";
     _barValue.text = @"";

@@ -1,11 +1,11 @@
 Package: com.pavliukovbr.clawdmeter
 Name: Clawdmeter
-Version: 1.0.2
+Version: 1.1.0
 Architecture: iphoneos-arm
 Depends: uikittools
 Section: Utilities
 Priority: optional
-Installed-Size: 160
+Installed-Size: 180
 Author: pavliukovbr
 Maintainer: pavliukovbr
 Homepage: https://github.com/pavliukovbr/clawdmeter
@@ -22,8 +22,8 @@ Description: Claude plan usage on a phone you stopped using
  address of the PC and the key.
  .
  Built for armv7 and iOS 9, so an iPhone 4S, a 4 or a 3GS is enough.
-Filename: debs/Clawdmeter_1.0.2_iphoneos-arm.deb
-Size: 52322
-MD5sum: 433544e97fed7e7555ed751ee4068aba
-SHA1: e6871cafbe03cfbc5dfc9d5aa5e560528bfc7be1
-SHA256: 3621962c1c6c5b3c3e5dc34a5ab4b600605707ca63572e66d456bb23c4f118bf
+Filename: debs/Clawdmeter_1.1.0_iphoneos-arm.deb
+Size: 59214
+MD5sum: 7ca16ea224720a4b37990648220eea2d
+SHA1: e0bd2c79ef4556a7e7fcc428c06a5db629dfd5fe
+SHA256: 1204f70622b35252589fc05fa2736338c863a397f1b68839b0a0e030b20b04fc

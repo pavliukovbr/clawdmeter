@@ -4,7 +4,7 @@ struct MenuPanel: View {
     @ObservedObject var store: UsageStore
     @ObservedObject var updater: Updater
     @ObservedObject var keepAwake: KeepAwake
-    @ObservedObject var phoneSharing: PhoneSharing
+    @ObservedObject var oldPhoneScreen: OldPhoneScreen
 
     @State private var opensAtLogin = LoginItem.isEnabled
     @State private var pettedAt: Date?
@@ -13,7 +13,7 @@ struct MenuPanel: View {
     @AppStorage(KeepAwake.modeKey) private var keepAwakeMode = KeepAwake.Mode.off.rawValue
     @AppStorage(KeepAwake.displayKey) private var keepDisplayAwake = false
     @AppStorage(Updater.autoCheckKey) private var checksAutomatically = true
-    @AppStorage(PhoneSharing.enabledKey) private var sharesWithiPhone = false
+    @AppStorage(OldPhoneScreen.enabledKey) private var showsOnOldPhone = false
     @AppStorage(RoamingController.enabledKey) private var walksAround = true
     @AppStorage(ClaudeNotifier.enabledKey) private var notifiesWhenDone = true
 
@@ -66,11 +66,11 @@ struct MenuPanel: View {
                         Toggle("", isOn: $keepDisplayAwake).labelsHidden()
                     }
                 }
-                SettingRow(symbol: "iphone", tint: .teal, title: "Share with iPhone", detail: phoneDetail) {
-                    Toggle("", isOn: $sharesWithiPhone).labelsHidden()
+                SettingRow(symbol: "iphone.gen1", tint: .teal, title: "Screen on an Old Phone", detail: oldPhoneDetail) {
+                    Toggle("", isOn: $showsOnOldPhone).labelsHidden()
                 }
-                if sharesWithiPhone, let pairing = phoneSharing.pairing {
-                    PairingCard(pairing: pairing) { phoneSharing.resetPairing() }
+                if showsOnOldPhone, let address = oldPhoneScreen.address {
+                    OldPhoneCard(address: address)
                 }
                 SettingRow(symbol: "power", tint: .green, title: "Open at Login") {
                     Toggle("", isOn: $opensAtLogin)
@@ -104,6 +104,7 @@ struct MenuPanel: View {
         .frame(width: 392)
         .onAppear {
             opensAtLogin = LoginItem.isEnabled
+            oldPhoneScreen.refreshAddress()
             store.refreshSoon()
         }
     }
@@ -171,11 +172,10 @@ struct MenuPanel: View {
         .background(.quaternary.opacity(0.5), in: RoundedRectangle(cornerRadius: 10, style: .continuous))
     }
 
-    private var phoneDetail: String? {
-        guard sharesWithiPhone else { return nil }
-        if let problem = phoneSharing.problem { return problem }
-        guard let lastSeen = phoneSharing.lastSeen else { return "Waiting for your iPhone" }
-        return "iPhone checked in \(Format.relative(lastSeen, from: Date()))"
+    private var oldPhoneDetail: String? {
+        guard showsOnOldPhone else { return nil }
+        if let problem = oldPhoneScreen.problem { return problem }
+        return oldPhoneScreen.address == nil ? "Connect this Mac to Wi-Fi" : nil
     }
 
     private var status: String {
@@ -244,13 +244,12 @@ private struct MenuRow: View {
     }
 }
 
-private struct PairingCard: View {
-    var pairing: PhonePairing
-    var reset: () -> Void
+private struct OldPhoneCard: View {
+    var address: String
 
     var body: some View {
         HStack(alignment: .top, spacing: 12) {
-            if let url = pairing.url, let image = QRCode.image(for: url.absoluteString, side: 112) {
+            if let image = QRCode.image(for: address, side: 112) {
                 Image(nsImage: image)
                     .interpolation(.none)
                     .resizable()
@@ -259,20 +258,19 @@ private struct PairingCard: View {
                     .background(.white, in: RoundedRectangle(cornerRadius: 8, style: .continuous))
             }
             VStack(alignment: .leading, spacing: 6) {
-                Text("Scan with the iPhone Camera")
+                Text("Scan with the Old Phone")
                     .font(.system(size: 12, weight: .semibold))
-                Text("Opens Clawdmeter on your iPhone and pairs it with this Mac. Install Tailscale on both to see your usage away from home.")
+                Text("Scan it in Clawdmeter on the phone, or open the address in any browser on the same Wi-Fi.")
                     .font(.system(size: 11))
                     .foregroundStyle(.secondary)
                     .fixedSize(horizontal: false, vertical: true)
-                HStack(spacing: 8) {
-                    Button("Copy Link") {
-                        guard let url = pairing.url else { return }
-                        NSPasteboard.general.clearContents()
-                        NSPasteboard.general.setString(url.absoluteString, forType: .string)
-                    }
-                    Button("Reset", role: .destructive, action: reset)
-                        .help("Unpairs every iPhone that used the old code")
+                Text(address)
+                    .font(.system(size: 11, design: .monospaced))
+                    .textSelection(.enabled)
+                    .fixedSize(horizontal: false, vertical: true)
+                Button("Copy Address") {
+                    NSPasteboard.general.clearContents()
+                    NSPasteboard.general.setString(address, forType: .string)
                 }
                 .controlSize(.small)
             }

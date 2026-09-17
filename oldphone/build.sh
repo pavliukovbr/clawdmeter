@@ -69,7 +69,7 @@ xcrun clang \
     -target armv7-apple-ios8.0 \
     -isysroot "$SDK" \
     -framework UIKit -framework Foundation -framework CoreGraphics \
-    -framework QuartzCore -framework AudioToolbox \
+    -framework QuartzCore -framework AudioToolbox -framework AVFoundation \
     -framework CFNetwork \
     "$BUILD"/obj/*.o \
     -o "$BIN"

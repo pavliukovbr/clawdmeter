@@ -5,12 +5,12 @@
 <h1 align="center">Clawdmeter</h1>
 
 <p align="center">
-  Your Claude plan usage on the desktop, with Clawd walking along the meter.<br>
-  A little Clawd under your notch that works whenever Claude does, on Windows and on your iPhone too.
+  Your Claude plan usage on the Mac desktop, with Clawd walking along the meter.<br>
+  A little Clawd under your notch that works whenever Claude does, and a pocket Clawd on an old iPhone.
 </p>
 
 <p align="center">
-  <a href="https://github.com/pavliukovbr/clawdmeter/releases/latest"><b>Download for Mac</b></a> · <a href="https://github.com/pavliukovbr/clawdmeter/releases/latest"><b>Download for Windows</b></a> · <a href="#on-your-iphone"><b>Install on iPhone</b></a> · <a href="#ask-your-claude-to-install-it"><b>Ask your Claude to install it</b></a>
+  <a href="https://github.com/pavliukovbr/clawdmeter/releases/latest"><b>Download for Mac</b></a> · <a href="#an-old-iphone-as-a-second-screen"><b>Old iPhone app</b></a> · <a href="#windows-experimental"><b>Windows, experimental</b></a> · <a href="#ask-your-claude-to-install-it"><b>Ask your Claude to install it</b></a>
 </p>
 
 ## Desktop widget
@@ -59,7 +59,7 @@ There is only ever one Clawd, so the notch stays empty while he is out. Mention 
 
 ## Notifications
 
-With **Notify When Claude Finishes** on, the Mac lets you know when Claude wraps up something that took more than 20 seconds, with the project name and how long it took. The iPhone app shows the same news as a banner while it is open.
+With **Notify When Claude Finishes** on, the Mac lets you know when Claude wraps up something that took more than 20 seconds, with the project name and how long it took.
 
 ## Keep Mac awake
 
@@ -71,25 +71,29 @@ Leaving Claude on a long task, or driving it remotely? Clawdmeter can keep the M
 
 The Mac still sleeps when the lid is closed, unless it is connected to an external display.
 
-## iPhone
+## An old iPhone as a second screen
 
-Clawdmeter comes to the iPhone too: widgets on the Home Screen, a ring and a bar on the Lock Screen, a big Clawd in StandBy and Clawd in the Dynamic Island.
+Have an old iPhone in a drawer? Clawdmeter turns it into a little screen next to your computer: the big number, the bars, the countdown to the reset, and Clawd living at the bottom as a pet you can pick up, stroke and feed. When Claude stops and waits for you, the phone buzzes once and shows a big exclamation mark.
 
-The iPhone never signs in to Claude. Your Mac shares the summary with it:
+The app is for jailbroken iPhones on iOS 8 or 9, like an iPhone 4S, and installs from Cydia:
 
-1. On the Mac, open Clawdmeter in the menu bar and turn on **Share with iPhone**.
-2. Scan the code with the iPhone Camera and open the link.
-3. To keep it working away from home, install [Tailscale](https://tailscale.com) on the Mac and the iPhone with the same account. The iPhone picks up the new address by itself.
+1. On the Mac, open Clawdmeter in the menu bar and turn on **Screen on an Old Phone**. A code appears.
+2. On the iPhone, open Cydia, go to **Sources**, tap **Edit**, then **Add**, and type `https://pavliukovbr.github.io/clawdmeter/cydia/`. The source has no signing key, so Cydia warns about that once.
+3. Open the source, pick **Clawdmeter** and tap **Install**.
+4. Open the app and point the camera at the code on the Mac. That is the whole setup.
 
-Every request is signed and every reply is encrypted with a key only your Mac and iPhone know, so nothing readable crosses the network. When the Mac cannot be reached, the iPhone keeps showing the last numbers and the countdowns keep running.
+The screen stays on while the app is open, so leave the phone charging. If the camera is broken, hold a finger on the screen to type the address instead. Without Cydia, `oldphone/install.sh` copies the app over SSH, and [the old phone notes](oldphone/README.md) explain how it is built.
 
-The Dynamic Island follows your session while it is on. It updates whenever the app refreshes, and iOS ends it after 8 hours.
+Any other old phone works too, without an app: open the address below the code in its browser, add it to the Home Screen, and set Auto Lock to Never. The page turns itself sideways when the phone is upright.
 
-To put it on your iPhone, follow [the iPhone steps](#on-your-iphone) or [ask your Claude to install it](#ask-your-claude-to-install-it).
+The phone only reads a summary from your own computer on your home network. It never signs in to Claude, the computer only answers with the key that is part of the code, and nothing is served until you turn it on.
 
-## Windows
+## Windows, experimental
 
-Clawdmeter runs on Windows 10 and 11 as well, reading the same Claude Code sign in from your PC.
+> [!WARNING]
+> The Windows version is experimental and still unstable. Expect rough edges and the odd crash. **The Mac version is the recommended one.**
+
+Clawdmeter also runs on Windows 10 and 11, reading the Claude Code sign in from your PC. Sign in with the Claude Code command line once, since the Claude desktop app keeps its own sign in where other apps cannot read it.
 
 - A small panel on the desktop with your session, weekly and model limits, the same meters as the Mac widget
 - An icon in the notification area: click it to show or hide the panel, right click it for the settings
@@ -100,27 +104,6 @@ Clawdmeter runs on Windows 10 and 11 as well, reading the same Claude Code sign 
 - Keep the PC awake while Claude works, open at login, and the same alert when Claude finishes
 
 Drag the panel anywhere, it stays where you leave it. Everything can be turned off from the menu.
-
-### An old phone as a second screen
-
-Have a phone gathering dust? Turn on **Screen on an old phone** and the PC serves a small page on your home network with the big number, the bars, the countdown and Clawd walking along the bottom. Pick **Show the phone address**, open it on the phone and leave it there.
-
-It is built for old browsers, so even a phone from 2011 keeps it on screen. On an iPhone use **Share** and **Add to Home Screen** to lose the browser bars, set **Auto Lock** to **Never** and leave it charging. The page turns itself sideways when the phone is upright, so it reads the same either way.
-
-The page only answers phones on your own network and only with the key that is part of the address, it listens on port 47848, and it is off until you turn it on.
-
-### A real app on a jailbroken iPhone
-
-If the old phone is a jailbroken iPhone on iOS 9, there is a native app for it instead of a web page: an icon on the Home Screen, the same numbers, and Clawd living at the bottom of the screen as a little pet you can pick up, stroke and feed. It runs on an iPhone 4S, a 4 and a 3GS.
-
-It installs from Cydia, so the phone needs nothing else:
-
-1. In Cydia open **Sources**, tap **Edit**, then **Add**.
-2. Type `https://pavliukovbr.github.io/clawdmeter/cydia/` and tap **Add Source**. The source carries no signing key, so Cydia warns about that once.
-3. Open the source, pick **Clawdmeter** and tap **Install**.
-4. Open the app, hold a finger on the screen and type the address of the PC and the key, the same ones **Show the phone address** gives you.
-
-Without Cydia, or to put your own build on the phone, `oldphone/install.sh` copies the app over SSH instead. [The old phone notes](oldphone/README.md) have both ways and how the package is made.
 
 ## Works with every plan
 
@@ -147,32 +130,22 @@ Clawdmeter detects your plan and adapts on its own.
 
 You need macOS 14 Sonoma or later, on Apple silicon or Intel, and Claude Code signed in on the same Mac. From then on Clawdmeter updates itself.
 
-### On your PC
+### On Windows, experimental
 
 1. Download **Clawdmeter-Windows.zip** from the [latest release](https://github.com/pavliukovbr/clawdmeter/releases/latest).
 2. Unzip it anywhere you like and run **Clawdmeter.exe**. Nothing to install, the app carries what it needs.
 3. Windows warns about an unknown publisher the first time, since the app is not signed yet. Click **More info** and **Run anyway**.
 4. Turn on **Open at login** from the icon in the notification area to have it start with the PC.
 
-You need Windows 10 or 11 on 64 bit, and Claude Code signed in on the same PC. From then on Clawdmeter updates itself.
+You need Windows 10 or 11 on 64 bit, and the Claude Code command line signed in on the same PC. From then on Clawdmeter updates itself. Remember the Windows version is still experimental.
 
-### On your iPhone
+### On an old iPhone
 
-The iPhone app is installed from your Mac with Xcode. A free Apple ID is enough.
-
-1. Install **Xcode** from the Mac App Store, open it and add your Apple ID in **Settings > Accounts**.
-2. Connect the iPhone with a cable and tap **Trust**. On the iPhone, turn on **Settings > Privacy & Security > Developer Mode** and let it restart.
-3. Download this project with **Code > Download ZIP** on this page, unzip it and open `Clawdmeter.xcodeproj`.
-4. Select the project, then under **Signing & Capabilities** pick your team for **ClawdmeterPhone** and for **ClawdmeterPhoneWidget**.
-5. At the top of the window choose **ClawdmeterPhone** and your iPhone, then press **Run**.
-6. On the iPhone, open **Settings > General > VPN & Device Management**, tap your Apple ID and tap **Trust**. Open Clawdmeter.
-7. On the Mac, turn on **Share with iPhone** in the Clawdmeter menu and scan the code with the iPhone Camera.
-
-With a free Apple ID the app stops opening after 7 days. Connect the iPhone and press Run again to renew it. If Xcode says the bundle identifier is not available, change `CLAWDMETER_BUNDLE_PREFIX` in the project build settings to something of your own.
+Follow [the steps above](#an-old-iphone-as-a-second-screen): add the Cydia source, install Clawdmeter, and scan the code from the Mac.
 
 ### Ask your Claude to install it
 
-Using Claude Code? Paste this and let it do the work. It will still ask you for the few things only you can do, like signing in to Xcode or tapping Trust on the iPhone.
+Using Claude Code? Paste this and let it do the work. It will still ask you for the few things only you can do, like clicking Open Anyway.
 
 ```text
 Please install Clawdmeter for me from https://github.com/pavliukovbr/clawdmeter
@@ -181,14 +154,6 @@ Mac
 1. Download Clawdmeter.dmg from the latest release, copy Clawdmeter.app into /Applications and open it.
 2. If macOS blocks it, tell me to click Open Anyway in System Settings > Privacy & Security.
 3. Tell me how to add the widget: right click the desktop, choose Edit Widgets and search for Clawdmeter.
-
-iPhone (ask me first if I want it)
-1. Check that Xcode is installed and that I am signed in with my Apple ID in Xcode > Settings > Accounts. If not, stop and tell me what to do.
-2. Clone the repository and find my iPhone connected by cable with xcrun devicectl. Check that Developer Mode is on.
-3. Read my team ID from the Xcode preferences, then build the ClawdmeterPhone scheme for that iPhone with xcodebuild, passing DEVELOPMENT_TEAM and -allowProvisioningUpdates on the command line. Do not change the project file.
-4. If the bundle identifier is not available, add CLAWDMETER_BUNDLE_PREFIX set to something unique to that same command.
-5. Install and open the app on the iPhone with xcrun devicectl. If it does not open, tell me to trust my Apple ID in Settings > General > VPN & Device Management, then try again.
-6. Tell me to turn on Share with iPhone in the Clawdmeter menu on the Mac and scan the code with the iPhone Camera.
 
 Never ask for or type my passwords, and never show my Claude sign in or any token.
 ```
@@ -225,9 +190,10 @@ To make the downloadable file for a release, run `scripts/release-windows.sh`.
 
 The project is organized in a few folders:
 
-- `App` is the menu bar app: reading usage, the notch scene, keep awake, updates and sharing with iPhone.
+- `App` is the menu bar app: reading usage, the notch scene, keep awake, updates and the screen for an old phone.
 - `Widget` is the Mac widget extension.
-- `iPhone` and `iPhoneWidget` are the iPhone app, its widgets and the Live Activity, with `PhoneShared` between them.
+- `oldphone` is the app for jailbroken old iPhones, in Objective-C, with its Cydia packaging.
+- `iPhone`, `iPhoneWidget` and `PhoneShared` hold the earlier iPhone app. It is switched off and no longer maintained.
 - `Shared` has the views, models and the pairing protocol used everywhere.
 - `windows` is the Windows app, written in C# with WPF and no dependencies.
 
@@ -252,8 +218,6 @@ Clawdmeter keeps everything on your own devices.
 - **What you do** is limited to which app is in front and how long ago a key was pressed. Which keys you press is never known.
 - **What is saved** is one small file in `~/Library/Application Support/Clawdmeter`, or in `%APPDATA%\Clawdmeter` on Windows, with percentages, reset times and daily totals, readable only by you.
 - **The screen for an old phone** is off until you turn it on. It answers only addresses on your own network, only with the key in the address, and it sends percentages and counts, never your logs or your sign in.
-- **Sharing with iPhone** is off until you turn it on. The Mac only answers phones paired with its code, replies are encrypted, and the port closes when you turn it off. Reset the code any time to unpair every phone.
-- **The iPhone** keeps the pairing and the last numbers in its keychain. It never gets your Claude sign in.
 - **Updates** come from the public release list of this repository on GitHub. Nothing about you or your Mac is sent.
 
 There is no analytics, no tracking and no account.
@@ -264,8 +228,7 @@ There is no analytics, no tracking and no account.
 - The usage endpoint is the one Claude Code uses internally. It is not a public API and could change.
 - Widgets on a dimmed desktop keep Clawd still, since macOS does not animate them there.
 - Closed the menu bar icon by accident? Open Clawdmeter again and it comes back.
-- Sharing with iPhone listens on port 47847, and is a Mac feature for now.
-- The screen for an old phone listens on port 47848, and is a Windows feature for now. Windows asks to allow it through the firewall the first time.
+- The screen for an old phone listens on port 47848. On Windows, allow it through the firewall the first time it asks.
 - The Windows app is not code signed, so SmartScreen warns the first time you run it.
 
 ## License
