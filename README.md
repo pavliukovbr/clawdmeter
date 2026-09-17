@@ -224,7 +224,7 @@ There is no analytics, no tracking and no account.
 
 ## Good to know
 
-- If you have not used Claude Code for a while its sign in can expire. Run any Claude Code command and the widget catches up on the next refresh.
+- The sign in Clawdmeter reads belongs to the Claude Code command line, and it runs out after a few hours without use. When that happens Clawdmeter starts the command line once in the background with a local command, which renews it without sending anything to Claude or spending usage. If the command line is not installed, run any Claude Code command and the widget catches up on the next refresh.
 - The usage endpoint is the one Claude Code uses internally. It is not a public API and could change.
 - Widgets on a dimmed desktop keep Clawd still, since macOS does not animate them there.
 - Closed the menu bar icon by accident? Open Clawdmeter again and it comes back.

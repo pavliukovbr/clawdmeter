@@ -66,6 +66,12 @@ public sealed class UsageStore : IDisposable
                 return;
             }
 
+            // An expired sign in usually just means the command line has not run for a while.
+            if (credentials.IsExpired && await SignInRenewal.Renew(cancel).ConfigureAwait(false))
+            {
+                credentials = CredentialsReader.Read() ?? credentials;
+            }
+
             if (credentials.IsExpired)
             {
                 Commit(Keep(activity, SnapshotStatus.Expired));

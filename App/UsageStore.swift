@@ -37,9 +37,14 @@ final class UsageStore: ObservableObject {
         defer { isRefreshing = false }
 
         let activity = await scanner.scan()
-        let credentials = await Task.detached(priority: .utility) { CredentialsReader.read() }.value
+        var credentials = await Task.detached(priority: .utility) { CredentialsReader.read() }.value
         let previous = snapshot
         let now = Date()
+
+        // An expired sign in usually just means the command line has not run for a while.
+        if credentials?.isExpired == true, await SignInRenewal.renew() {
+            credentials = await Task.detached(priority: .utility) { CredentialsReader.read() }.value
+        }
 
         guard let credentials else {
             let usesAPIKey = activity?.days.contains { $0.tokens > 0 } ?? false
