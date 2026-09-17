@@ -52,8 +52,11 @@ mkdir -p "$APP" "$BUILD/obj"
 
 for SOURCE in "$HERE"/Clawdmeter/*.m; do
     NAME=$(basename "$SOURCE" .m)
+    # ARM only, no Thumb. Today's linker gets the switch between the two wrong on armv7,
+    # so the whole app stays in one instruction set and never has to switch.
     xcrun clang -c \
         -target armv7-apple-ios8.0 \
+        -marm \
         -isysroot "$SDK" \
         -fobjc-arc -fvisibility=hidden \
         -Wall -Wextra -Wno-unused-parameter -Werror=implicit-function-declaration \
@@ -71,10 +74,11 @@ xcrun clang \
     "$BUILD"/obj/*.o \
     -o "$BIN"
 
-# 3. The entry point. The linker that ships today forgets to mark main as Thumb on
-#    armv7, and the phone then runs Thumb code in ARM mode and dies on the first
-#    instruction. This puts the bit back, before the signature is applied.
-python3 "$HERE/Resources/fixentry.py" "$BIN"
+# 3. Refuse to ship a binary with any Thumb code in it, since that is what crashed.
+if nm -m "$BIN" | grep -q "\[Thumb\]"; then
+    echo "Thumb code found in the binary, the old phone would crash on it"
+    exit 1
+fi
 
 # 4. Icons, drawn by a small script so the repository carries no binaries.
 python3 "$HERE/Resources/mkicon.py" "$APP/AppIcon60x60@2x.png" 120

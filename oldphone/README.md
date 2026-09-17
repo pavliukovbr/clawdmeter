@@ -125,10 +125,9 @@ phone plugged in.
   instead of throwing them away.
 - The Xcode that ships today cannot build for iOS 9 on its own, which is why `build.sh`
   fetches the old SDK from the theos mirror.
-- On armv7 the processor picks ARM or Thumb from bit 0 of the address it jumps to, and
-  the linker that ships today no longer sets that bit on the entry point of an armv7
-  binary. Without it the phone runs the first instruction of `main` in the wrong mode and
-  the app dies on launch. `Resources/fixentry.py` puts the bit back after linking.
+- On armv7 the processor switches between ARM and Thumb code as it jumps, and the linker
+  that ships today gets that switch wrong, so a Thumb build dies on launch. The app is
+  compiled as ARM only, and `build.sh` refuses to finish if any Thumb code slips in.
 - App Transport Security only exists from iOS 9, so the exception in the bundle is dead
   weight on an iOS 8 phone and plain http works there either way.
 - `Tools/shots.sh` draws every screen to a PNG at 480 by 320 points, on the Mac, for
